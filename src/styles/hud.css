@@ -792,3 +792,53 @@
     font-size: 26px;
   }
 }
+
+/* ---------- Confirm dialog ---------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 7, 13, 0.62);
+  backdrop-filter: blur(3px);
+  pointer-events: auto;
+}
+
+.dialog {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  padding: 16px 20px 18px;
+}
+
+.dialog h2 {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.dialog-body {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.dialog-body p {
+  margin: 0;
+}
+
+.dialog-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.hud-btn.danger {
+  border-color: rgba(255, 77, 109, 0.32);
+}

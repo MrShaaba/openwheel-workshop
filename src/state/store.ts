@@ -293,6 +293,7 @@ export const useWorkshop = create<WorkshopState>()(
           exploded: false,
           assembling: false,
           celebration: null,
+          cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
         }),
     }),
     {

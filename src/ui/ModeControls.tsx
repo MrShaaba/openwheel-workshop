@@ -1,10 +1,20 @@
+import { useState } from 'react'
+import { PART_COUNT } from '../parts/registry'
 import { useWorkshop } from '../state/store'
+import { ConfirmDialog } from './ConfirmDialog'
 
 export function ModeControls() {
   const mode = useWorkshop((state) => state.mode)
   const muted = useWorkshop((state) => state.muted)
+  const installedCount = useWorkshop((state) => state.installed.length)
+  const assembling = useWorkshop((state) => state.assembling)
   const setMode = useWorkshop((state) => state.setMode)
   const toggleMute = useWorkshop((state) => state.toggleMute)
+  const reset = useWorkshop((state) => state.reset)
+  const notify = useWorkshop((state) => state.notify)
+  const [confirming, setConfirming] = useState(false)
+
+  const canReset = installedCount > 0 || assembling
 
   return (
     <div className="mode-controls">
@@ -36,7 +46,32 @@ export function ModeControls() {
           {muted ? 'Sound off' : 'Sound on'}
           <kbd>M</kbd>
         </button>
+        <button
+          type="button"
+          className="hud-btn danger"
+          disabled={!canReset}
+          onClick={() => setConfirming(true)}
+        >
+          Reset build
+        </button>
       </div>
+      <ConfirmDialog
+        open={confirming}
+        title="Reset the build?"
+        confirmLabel="Reset"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false)
+          reset()
+          notify('Build reset')
+        }}
+      >
+        <p>
+          This removes {installedCount === PART_COUNT ? 'all' : 'the'} {installedCount} installed
+          part{installedCount === 1 ? '' : 's'} and clears the saved build. The camera returns to
+          the hero angle.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

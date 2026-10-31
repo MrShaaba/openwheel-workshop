@@ -34,7 +34,7 @@ export function Objective() {
   } else if (complete) {
     label = 'STATUS'
     title = 'Assembly complete'
-    hint = 'Every part is installed. Click any part to inspect it, or press E for the exploded view.'
+    hint = 'Click any part to inspect it, press E for the exploded view, or Reset build to start again.'
   } else if (assembling) {
     label = 'ASSEMBLING'
     title = installing ? PART_BY_ID[installing].name : 'Sequencing parts'

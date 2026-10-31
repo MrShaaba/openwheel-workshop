@@ -11,6 +11,8 @@ export function useKeyboard(): void {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (event.target instanceof HTMLElement && EDITABLE_TAGS.has(event.target.tagName)) return
+      // A dialog owns the keyboard while it is open.
+      if (document.activeElement?.closest('[role="dialog"]')) return
 
       const state = useWorkshop.getState()
       const key = event.key
@@ -24,6 +26,8 @@ export function useKeyboard(): void {
 
       switch (key.toLowerCase()) {
         case ' ': {
+          // Space on a focused HUD button activates that button only.
+          if (event.target instanceof HTMLButtonElement) return
           event.preventDefault()
           const next =
             state.mode === 'guided'
