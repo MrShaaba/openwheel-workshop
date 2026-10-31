@@ -1,26 +1,23 @@
 # Roadmap
 
-Phases 1 to 3 are built: the workshop scene, camera and HUD; the part system with Guided and Free
-Build; the materialise shader, procedural sound, info cards and Inspect mode. The items below are
-specified but not built. The data model already carries what they need (`explodeVector` on every
-part, the `livery` slice in the store, the `PartSource` union for GLB models).
+Phases 1 to 4 are built: the workshop scene, camera and HUD; the part system with Guided and Free
+Build; the materialise shader, procedural sound, info cards and Inspect mode; Exploded View,
+Assemble All, the completion sequence, save and resume, and Reset build. The items below are
+specified but not built. The data model already carries what they need (the `livery` slice in the
+store is persisted and validated, the `PartSource` union covers GLB models).
 
-## Phase 4: Exploded View, Assemble All, completion, save and resume
+## Phase 4: Exploded View, Assemble All, completion, save and resume (built)
 
-- [ ] **Exploded View.** Animate every installed part along its `explodeVector` from
-      `src/parts/registry.ts` with a short stagger by stage, and back again. Toggle with the HUD
-      button and the `E` key. Disable install and Inspect while exploded.
-- [ ] **Assemble All.** A sequencer in the store that installs each remaining part in registry order
-      with a fixed gap, flies the camera to a preset per stage (core: hero, power unit: rear,
-      running gear: side, aero: front, controls: cockpit), and can be skipped with Esc.
-- [ ] **Completion moment.** When the last part commits: platform ring and floor grid pulse
-      brighter, `engineRev()` from `src/audio/synth.ts` plays, the camera does a slow hero sweep,
-      and the HUD runs a "SYSTEMS ONLINE" typewriter sequence over the stage bar.
-- [ ] **Save and resume.** Wrap the store in zustand `persist` through `src/state/persistence.ts`:
-      a localStorage adapter in try/catch, a schema version key, and `partialize` to
-      `installed`, `mode`, `muted` and `livery`. Hydrate before the boot screen clears.
-- [ ] **Reset build.** HUD action with a confirmation dialog that clears the persisted build and
-      returns the camera to the hero angle.
+- [x] **Exploded View.** `E` or the HUD toggle slides every installed part along its `explodeVector`
+      with a stagger by stage and a dashed tether to its home point. Install and Inspect are blocked
+      until the car is collapsed.
+- [x] **Assemble All.** `src/scene/AssemblyDirector.tsx` installs the remaining parts in registry
+      order with a stage-specific camera move; `Esc` stops it, Skip to end finishes instantly.
+- [x] **Completion moment.** Shockwave rings, a platform flare, the engine rev, a slow camera sweep
+      and the SYSTEMS ONLINE banner when the last part locks in.
+- [x] **Save and resume.** zustand `persist` through `src/state/persistence.ts` with a schema version,
+      a try/catch storage adapter and field-by-field sanitising of whatever comes back.
+- [x] **Reset build.** Confirmation dialog, clears the saved build, camera back to hero.
 
 ## Phase 5: livery customiser, polish, performance
 
