@@ -1,7 +1,30 @@
+import { useEffect } from 'react'
+import { useKeyboard } from './hooks/useKeyboard'
+import { markInteraction } from './scene/interaction'
+import { WorkshopCanvas } from './scene/WorkshopCanvas'
+import { HUD } from './ui/HUD'
+import { LoadingScreen } from './ui/LoadingScreen'
+
 export default function App() {
+  useKeyboard()
+
+  useEffect(() => {
+    const options: AddEventListenerOptions = { passive: true }
+    window.addEventListener('pointerdown', markInteraction, options)
+    window.addEventListener('wheel', markInteraction, options)
+    return () => {
+      window.removeEventListener('pointerdown', markInteraction)
+      window.removeEventListener('wheel', markInteraction)
+    }
+  }, [])
+
   return (
-    <main style={{ display: 'grid', placeContent: 'center', height: '100%' }}>
-      <h1>Open-Wheel Workshop</h1>
-    </main>
+    <>
+      <div className="scene-layer">
+        <WorkshopCanvas />
+      </div>
+      <HUD />
+      <LoadingScreen />
+    </>
   )
 }
