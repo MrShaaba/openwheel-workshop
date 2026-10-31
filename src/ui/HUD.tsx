@@ -3,6 +3,8 @@ import { useWorkshop } from '../state/store'
 import '../styles/hud.css'
 import { Brand } from './Brand'
 import { CameraPresets } from './CameraPresets'
+import { HoverLabel } from './HoverLabel'
+import { InfoCard } from './InfoCard'
 import { KeyLegend } from './KeyLegend'
 import { ModeControls } from './ModeControls'
 import { Objective } from './Objective'
@@ -39,7 +41,9 @@ export function HUD() {
             <StageChecklist />
           </aside>
           <div />
-          <aside className="hud-right" />
+          <aside className="hud-right">
+            <InfoCard />
+          </aside>
         </section>
 
         <footer className="hud-bottom">
@@ -49,6 +53,7 @@ export function HUD() {
         </footer>
       </motion.div>
 
+      <HoverLabel />
       <Toast />
     </div>
   )

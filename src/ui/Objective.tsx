@@ -7,6 +7,7 @@ export function Objective() {
   const installedCount = useWorkshop((state) => state.installed.length)
   const installing = useWorkshop((state) => state.installing)
   const attemptInstall = useWorkshop((state) => state.attemptInstall)
+  const inspecting = useWorkshop((state) => state.inspecting)
   const next = useNextGuided()
   const installable = useInstallable()
   const complete = installedCount === PART_COUNT
@@ -15,7 +16,11 @@ export function Objective() {
   let title: string
   let hint: string
 
-  if (complete) {
+  if (inspecting) {
+    label = 'INSPECTING'
+    title = PART_BY_ID[inspecting].name
+    hint = 'Read the card, detach the part, or press ESC to return'
+  } else if (complete) {
     label = 'STATUS'
     title = 'Assembly complete'
     hint = 'Every part is installed. Click any part to inspect it.'
@@ -40,7 +45,7 @@ export function Objective() {
       <div className="label">{label}</div>
       <div className="objective-title">{title}</div>
       <div className="objective-hint">{hint}</div>
-      {!complete && (
+      {!complete && !inspecting && (
         <div className="objective-actions">
           <button
             type="button"

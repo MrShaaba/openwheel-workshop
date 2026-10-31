@@ -35,6 +35,10 @@ export function WorkshopCanvas() {
       onPointerDown={markInteraction}
       onWheel={markInteraction}
       onCreated={exposeDebugHandle}
+      onPointerMissed={() => {
+        const state = useWorkshop.getState()
+        if (state.inspecting) state.inspect(null)
+      }}
     >
       <color attach="background" args={[BACKGROUND]} />
       <fog attach="fog" args={[BACKGROUND, 18, 48]} />

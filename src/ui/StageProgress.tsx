@@ -40,7 +40,7 @@ export function StageProgress() {
               </div>
               <div className="tag">
                 <span>
-                  {stage.code} {stage.name.toUpperCase()}
+                  {stage.code} <span className="stage-name">{stage.name.toUpperCase()}</span>
                 </span>
                 <span>
                   {entry.done}/{entry.total}
