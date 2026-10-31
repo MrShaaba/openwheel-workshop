@@ -49,7 +49,7 @@ export interface Transform {
 }
 
 /** Surface finish of a geometry piece. Maps to a PBR material preset. */
-export type Finish = 'carbon' | 'paint' | 'metal' | 'rubber' | 'glass' | 'emissive'
+export type Finish = 'carbon' | 'paint' | 'metal' | 'darkmetal' | 'rubber' | 'glass' | 'emissive'
 
 export interface PartPiece {
   geometry: BufferGeometry
