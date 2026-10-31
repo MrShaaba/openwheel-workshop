@@ -34,6 +34,9 @@ export function useAudio(): void {
       if (state.installed.length < previous.installed.length) synth.detach()
       if (state.toast !== previous.toast && state.toast?.tone === 'denied') synth.denied()
       if (state.inspecting !== previous.inspecting && state.inspecting) synth.blip(1500)
+      if (state.celebration !== previous.celebration && state.celebration !== null) {
+        synth.engineRev()
+      }
     })
 
     return () => {

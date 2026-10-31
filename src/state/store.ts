@@ -26,6 +26,7 @@ export const CAMERA_PRESETS: readonly CameraPreset[] = [
 export type CameraRequest =
   | { kind: 'preset'; preset: CameraPreset; nonce: number }
   | { kind: 'focus'; part: PartId; nonce: number }
+  | { kind: 'sweep'; nonce: number }
 
 export type LiveryPattern = 'solid' | 'stripe' | 'split' | 'fade'
 
@@ -80,6 +81,8 @@ export interface WorkshopState {
   assembling: boolean
   cameraRequest: CameraRequest | null
   toast: Toast | null
+  /** Bumped when the last part locks in; drives the completion sequence. Never restored from storage. */
+  celebration: number | null
 
   // Actions
   setReady: () => void
@@ -110,6 +113,12 @@ export interface WorkshopState {
 
 let nonce = 0
 const nextNonce = (): number => ++nonce
+
+/** State changes shared by every way of finishing the car. */
+const completion = () => ({
+  celebration: nextNonce(),
+  cameraRequest: { kind: 'sweep' as const, nonce: nextNonce() },
+})
 
 const makeToast = (text: string, tone: ToastTone): Toast => ({ text, tone, nonce: nextNonce() })
 
@@ -147,6 +156,7 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
   assembling: false,
   cameraRequest: null,
   toast: null,
+  celebration: null,
 
   setReady: () => set({ ready: true }),
 
@@ -175,7 +185,12 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
     set((state) => {
       if (state.installing !== id) return {}
       if (state.installed.includes(id)) return { installing: null }
-      return { installing: null, installed: [...state.installed, id] }
+      const installed = [...state.installed, id]
+      return {
+        installing: null,
+        installed,
+        ...(installed.length === PART_COUNT ? completion() : {}),
+      }
     }),
 
   cancelInstall: () => set({ installing: null }),
@@ -257,6 +272,7 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
       assembling: false,
       inspecting: null,
       hovered: null,
+      ...completion(),
     })),
 
   requestCamera: (preset) => set({ cameraRequest: { kind: 'preset', preset, nonce: nextNonce() } }),
@@ -280,5 +296,6 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
       dragging: null,
       exploded: false,
       assembling: false,
+      celebration: null,
     }),
 }))

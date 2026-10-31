@@ -10,6 +10,7 @@ import { ModeControls } from './ModeControls'
 import { Objective } from './Objective'
 import { StageChecklist } from './StageChecklist'
 import { StageProgress } from './StageProgress'
+import { SystemsOnline } from './SystemsOnline'
 import { Toast } from './Toast'
 
 export function HUD() {
@@ -54,6 +55,7 @@ export function HUD() {
       </motion.div>
 
       <HoverLabel />
+      <SystemsOnline />
       <Toast />
     </div>
   )

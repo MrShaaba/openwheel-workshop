@@ -1,10 +1,17 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { BoxGeometry, Matrix4, type BufferGeometry, type Group } from 'three'
+import {
+  BoxGeometry,
+  Matrix4,
+  type BufferGeometry,
+  type Group,
+  type MeshBasicMaterial,
+} from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { damp, TAU } from '../lib/math'
 import { useWorkshop } from '../state/store'
 import { HOLO_COLOR, HOLO_COLOR_SOFT, PLATFORM_HEIGHT, PLATFORM_RADIUS } from './constants'
+import { completionGlow } from './effectsBus'
 import { idleSeconds } from './interaction'
 
 const IDLE_DELAY_SECONDS = 3
@@ -42,6 +49,8 @@ export function Platform({ children }: PlatformProps) {
   const group = useRef<Group>(null)
   const speed = useRef(0)
   const ticks = useMemo(() => buildTickMarks(), [])
+  const ringMaterial = useRef<MeshBasicMaterial>(null)
+  const glowMaterial = useRef<MeshBasicMaterial>(null)
 
   useEffect(() => () => ticks.dispose(), [ticks])
 
@@ -56,6 +65,12 @@ export function Platform({ children }: PlatformProps) {
     if (group.current && speed.current > 1e-4) {
       group.current.rotation.y += speed.current * dt
     }
+    // Completion sequence: the outer ring and floor spill flare up, then settle.
+    const glow = completionGlow.value
+    if (ringMaterial.current) {
+      ringMaterial.current.color.copy(HOLO_COLOR).multiplyScalar(1 + 1.8 * glow)
+    }
+    if (glowMaterial.current) glowMaterial.current.opacity = 0.07 + 0.3 * glow
   })
 
   const top = PLATFORM_HEIGHT
@@ -71,7 +86,7 @@ export function Platform({ children }: PlatformProps) {
       {/* Glowing outer ring */}
       <mesh rotation-x={-Math.PI / 2} position-y={top + 0.002}>
         <ringGeometry args={[PLATFORM_RADIUS - 0.14, PLATFORM_RADIUS - 0.02, 128]} />
-        <meshBasicMaterial color={HOLO_COLOR} toneMapped={false} />
+        <meshBasicMaterial ref={ringMaterial} color={HOLO_COLOR} toneMapped={false} />
       </mesh>
 
       {/* Inner guide rings */}
@@ -114,7 +129,13 @@ export function Platform({ children }: PlatformProps) {
       {/* Soft under-glow spilling onto the floor */}
       <mesh rotation-x={-Math.PI / 2} position-y={0.0005}>
         <ringGeometry args={[PLATFORM_RADIUS + 0.08, PLATFORM_RADIUS + 1.1, 96]} />
-        <meshBasicMaterial color={HOLO_COLOR_SOFT} toneMapped={false} transparent opacity={0.07} />
+        <meshBasicMaterial
+          ref={glowMaterial}
+          color={HOLO_COLOR_SOFT}
+          toneMapped={false}
+          transparent
+          opacity={0.07}
+        />
       </mesh>
 
       <group position-y={top}>{children}</group>

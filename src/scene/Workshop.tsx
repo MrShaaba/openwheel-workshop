@@ -1,5 +1,6 @@
 import { useWorkshop } from '../state/store'
 import { CarRoot } from './CarRoot'
+import { CompletionFX } from './CompletionFX'
 import { Dust } from './Dust'
 import { Floor } from './Floor'
 import { InventoryRing } from './InventoryRing'
@@ -17,6 +18,7 @@ export function Workshop() {
       <Floor />
       <LightShafts />
       <Dust />
+      <CompletionFX />
       <Platform>
         <CarRoot />
         {exploded ? null : <InventoryRing />}

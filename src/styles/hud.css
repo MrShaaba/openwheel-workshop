@@ -724,3 +724,71 @@
     max-height: 40vh;
   }
 }
+
+/* ---------- Systems online (completion banner) ---------- */
+
+.systems-online {
+  position: absolute;
+  top: 158px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  text-align: center;
+}
+
+.systems-online-line {
+  display: block;
+  width: 460px;
+  max-width: 70vw;
+  height: 1px;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan);
+  transform-origin: center;
+}
+
+.systems-online-title {
+  font-size: 34px;
+  letter-spacing: 0.32em;
+  color: #ffffff;
+  white-space: pre;
+  text-shadow:
+    0 0 18px rgba(56, 231, 255, 0.75),
+    0 0 42px rgba(56, 231, 255, 0.35);
+}
+
+.systems-online-title .caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 0.1em;
+  vertical-align: -0.12em;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: caret-blink 0.7s steps(1) infinite;
+}
+
+.systems-online-sub {
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--text-dim);
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1180px) {
+  .systems-online-title {
+    font-size: 26px;
+  }
+}
