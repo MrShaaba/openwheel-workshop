@@ -1,5 +1,7 @@
+import { CarRoot } from './CarRoot'
 import { Dust } from './Dust'
 import { Floor } from './Floor'
+import { InventoryRing } from './InventoryRing'
 import { Lighting } from './Lighting'
 import { LightShafts } from './LightShafts'
 import { Platform } from './Platform'
@@ -12,7 +14,10 @@ export function Workshop() {
       <Floor />
       <LightShafts />
       <Dust />
-      <Platform />
+      <Platform>
+        <CarRoot />
+        <InventoryRing />
+      </Platform>
     </group>
   )
 }

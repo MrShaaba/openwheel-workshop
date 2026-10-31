@@ -6,6 +6,7 @@ export function Objective() {
   const mode = useWorkshop((state) => state.mode)
   const installedCount = useWorkshop((state) => state.installed.length)
   const installing = useWorkshop((state) => state.installing)
+  const attemptInstall = useWorkshop((state) => state.attemptInstall)
   const next = useNextGuided()
   const installable = useInstallable()
   const complete = installedCount === PART_COUNT
@@ -31,11 +32,27 @@ export function Objective() {
     hint = 'Any hologram with its dependencies met can be installed'
   }
 
+  const candidate = mode === 'guided' ? next : (installable[0] ?? null)
+  const canInstall = !complete && !installing && candidate !== null
+
   return (
     <div className="panel objective" aria-live="polite">
       <div className="label">{label}</div>
       <div className="objective-title">{title}</div>
       <div className="objective-hint">{hint}</div>
+      {!complete && (
+        <div className="objective-actions">
+          <button
+            type="button"
+            className="hud-btn"
+            disabled={!canInstall}
+            onClick={() => candidate && attemptInstall(candidate)}
+          >
+            Install
+            <kbd>SPACE</kbd>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

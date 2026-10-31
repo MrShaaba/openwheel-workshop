@@ -1,6 +1,7 @@
 import { PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useState } from 'react'
+import { exposeDebugHandle } from '../debug'
 import { useWorkshop } from '../state/store'
 import { CameraRig } from './CameraRig'
 import { HERO_POSE } from './cameraPoses'
@@ -33,6 +34,7 @@ export function WorkshopCanvas() {
       camera={{ position: toVector3(HERO_POSE.position), fov: 38, near: 0.1, far: 120 }}
       onPointerDown={markInteraction}
       onWheel={markInteraction}
+      onCreated={exposeDebugHandle}
     >
       <color attach="background" args={[BACKGROUND]} />
       <fog attach="fog" args={[BACKGROUND, 18, 48]} />

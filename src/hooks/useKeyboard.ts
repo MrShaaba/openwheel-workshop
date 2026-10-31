@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
+import { installableIds, nextGuidedPart } from '../parts/graph'
 import { markInteraction } from '../scene/interaction'
 import { CAMERA_PRESETS, useWorkshop } from '../state/store'
 
 const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
-/** Global shortcuts: R hero camera, 1 to 6 presets, M mute, Esc leaves Inspect. */
+/** Global shortcuts: Space installs next, R hero camera, 1 to 6 presets, M mute, Esc leaves Inspect. */
 export function useKeyboard(): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -22,6 +23,16 @@ export function useKeyboard(): void {
       }
 
       switch (key.toLowerCase()) {
+        case ' ': {
+          event.preventDefault()
+          const next =
+            state.mode === 'guided'
+              ? nextGuidedPart(state.installed)
+              : (installableIds(state.installed)[0] ?? null)
+          if (next) state.attemptInstall(next)
+          else if (!state.installing) state.notify('Nothing left to install')
+          break
+        }
         case 'r':
           state.requestCamera('hero')
           break

@@ -35,7 +35,7 @@ export function Lighting() {
         </mesh>
         <Lightformer
           form="rect"
-          intensity={2.4}
+          intensity={4}
           color="#cfe6ff"
           position={[0, 7, 0]}
           rotation-x={Math.PI / 2}
@@ -43,7 +43,7 @@ export function Lighting() {
         />
         <Lightformer
           form="rect"
-          intensity={1.6}
+          intensity={2.2}
           color="#38e7ff"
           position={[-7, 2.5, 0]}
           rotation-y={Math.PI / 2}
@@ -51,7 +51,7 @@ export function Lighting() {
         />
         <Lightformer
           form="rect"
-          intensity={1.6}
+          intensity={2.2}
           color="#38e7ff"
           position={[7, 2.5, 0]}
           rotation-y={-Math.PI / 2}
