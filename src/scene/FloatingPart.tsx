@@ -10,7 +10,8 @@ import { PART_BY_ID } from '../parts/registry'
 import type { PartId } from '../parts/types'
 import { useWorkshop } from '../state/store'
 import { toVector3 } from './constants'
-import { emitDenied, emitFlash, freshInstalls } from './effectsBus'
+import { freshInstalls } from '../state/session'
+import { emitDenied, emitFlash } from './effectsBus'
 import { markInteraction } from './interaction'
 import { createHologramPair, disposeHologramPair } from './materials'
 import { floatingPositions, hashString, ringSlot } from './ring'
@@ -47,6 +48,8 @@ interface FloatingPartProps {
 
 const SNAP_TOLERANCE = 0.8
 const FLY_SECONDS = 1.05
+/** Assemble All runs flights faster so the whole car comes together in about half a minute. */
+const ASSEMBLY_FLY_SECONDS = 0.75
 const BOUNCE_SECONDS = 0.6
 const RETURN_SECONDS = 0.55
 const DRAG_THRESHOLD_PX = 5
@@ -112,7 +115,7 @@ export function FloatingPart({ id, index, count, highlight }: FloatingPartProps)
     const m = motion.current
     m.phase = 'fly'
     m.t = 0
-    m.duration = FLY_SECONDS
+    m.duration = useWorkshop.getState().assembling ? ASSEMBLY_FLY_SECONDS : FLY_SECONDS
     m.from.copy(node.position)
     m.fromScale = node.scale.x
     m.fromQuaternion.copy(node.quaternion)

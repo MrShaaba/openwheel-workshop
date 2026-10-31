@@ -15,7 +15,7 @@ import type { PartId } from '../parts/types'
 import { applyMaterialize, createMaterializeUniforms } from '../shaders/materialize'
 import { useWorkshop } from '../state/store'
 import { HOLO_COLOR_SOFT, toVector3 } from './constants'
-import { freshInstalls } from './effectsBus'
+import { freshInstalls } from '../state/session'
 import { markInteraction } from './interaction'
 import { createFinishMaterial, createHologramPair, disposeHologramPair } from './materials'
 import { hashString } from './ring'
@@ -206,7 +206,14 @@ export function InstalledPart({ id }: InstalledPartProps) {
   const onClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation()
     const state = useWorkshop.getState()
-    if (state.installing || state.dragging || state.exploded || state.inspecting === id) return
+    if (
+      state.installing ||
+      state.dragging ||
+      state.exploded ||
+      state.assembling ||
+      state.inspecting === id
+    )
+      return
     markInteraction()
     state.inspect(id)
     state.focusPart(id)

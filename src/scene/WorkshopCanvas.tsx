@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useState } from 'react'
 import { exposeDebugHandle } from '../debug'
 import { useWorkshop } from '../state/store'
+import { AssemblyDirector } from './AssemblyDirector'
 import { CameraRig } from './CameraRig'
 import { HERO_POSE } from './cameraPoses'
 import { BACKGROUND, toVector3 } from './constants'
@@ -51,6 +52,7 @@ export function WorkshopCanvas() {
       <Suspense fallback={null}>
         <Workshop />
         <CameraRig />
+        <AssemblyDirector />
         <Effects />
         <ReadySignal />
       </Suspense>

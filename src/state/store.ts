@@ -1,6 +1,12 @@
 import { create } from 'zustand'
-import { checkInstall, dependentsOf, type BuildMode, type InstallCheck } from '../parts/graph'
-import { PART_BY_ID } from '../parts/registry'
+import {
+  checkInstall,
+  dependentsOf,
+  remainingIds,
+  type BuildMode,
+  type InstallCheck,
+} from '../parts/graph'
+import { PART_BY_ID, PART_COUNT } from '../parts/registry'
 import type { PartId } from '../parts/types'
 
 export type { BuildMode } from '../parts/graph'
@@ -77,7 +83,10 @@ export interface WorkshopState {
 
   // Actions
   setReady: () => void
+  /** User-initiated install: honours the build mode plus the Exploded View and Assemble All blocks. */
   attemptInstall: (id: PartId) => InstallResult
+  /** Install driven by the Assemble All director; bypasses the session blocks, not the graph. */
+  queueInstall: (id: PartId) => InstallCheck
   commitInstall: (id: PartId) => void
   cancelInstall: () => void
   detach: (id: PartId) => void
@@ -86,6 +95,10 @@ export interface WorkshopState {
   hover: (id: PartId | null) => void
   setDragging: (id: PartId | null) => void
   toggleExploded: () => void
+  startAssembly: () => void
+  stopAssembly: () => void
+  /** Installs everything that is left in one step. */
+  finishAssembly: () => void
   requestCamera: (preset: CameraPreset) => void
   focusPart: (id: PartId) => void
   toggleMute: () => void
@@ -151,6 +164,13 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
     return check
   },
 
+  queueInstall: (id) => {
+    const state = get()
+    const check = checkInstall(id, state.installed, state.mode, state.installing)
+    if (check.ok) set({ installing: id, inspecting: null, hovered: null })
+    return check
+  },
+
   commitInstall: (id) =>
     set((state) => {
       if (state.installing !== id) return {}
@@ -174,7 +194,9 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
 
   inspect: (id) =>
     set((state) =>
-      state.inspecting === id || (id && state.exploded) ? {} : { inspecting: id },
+      state.inspecting === id || (id && (state.exploded || state.assembling))
+        ? {}
+        : { inspecting: id },
     ),
 
   hover: (id) => set((state) => (state.hovered === id ? {} : { hovered: id })),
@@ -207,6 +229,35 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
       cameraRequest: { kind: 'preset', preset: 'exploded', nonce: nextNonce() },
     })
   },
+
+  startAssembly: () => {
+    const state = get()
+    if (state.assembling) return
+    if (state.installed.length === PART_COUNT) {
+      set({ toast: makeToast('Assembly already complete', 'info') })
+      return
+    }
+    if (state.exploded) {
+      set({ toast: makeToast('Collapse the exploded view first', 'denied') })
+      return
+    }
+    if (state.installing) {
+      set({ toast: makeToast('Wait for the current part to lock in', 'denied') })
+      return
+    }
+    set({ assembling: true, inspecting: null, hovered: null })
+  },
+
+  stopAssembly: () => set((state) => (state.assembling ? { assembling: false } : {})),
+
+  finishAssembly: () =>
+    set((state) => ({
+      installed: [...state.installed, ...remainingIds(state.installed)],
+      installing: null,
+      assembling: false,
+      inspecting: null,
+      hovered: null,
+    })),
 
   requestCamera: (preset) => set({ cameraRequest: { kind: 'preset', preset, nonce: nextNonce() } }),
 

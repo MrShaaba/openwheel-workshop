@@ -43,7 +43,8 @@ export function useKeyboard(): void {
           state.toggleMute()
           break
         case 'escape':
-          state.inspect(null)
+          if (state.assembling) state.stopAssembly()
+          else state.inspect(null)
           break
         default:
           return
