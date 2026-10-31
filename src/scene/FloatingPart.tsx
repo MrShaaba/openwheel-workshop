@@ -10,9 +10,9 @@ import { PART_BY_ID } from '../parts/registry'
 import type { PartId } from '../parts/types'
 import { useWorkshop } from '../state/store'
 import { toVector3 } from './constants'
-import { emitDenied, emitFlash } from './effectsBus'
+import { emitDenied, emitFlash, freshInstalls } from './effectsBus'
 import { markInteraction } from './interaction'
-import { createHologramMaterials, disposeHologramMaterials } from './materials'
+import { createHologramPair, disposeHologramPair } from './materials'
 import { floatingPositions, hashString, ringSlot } from './ring'
 
 export type Highlight = 'next' | 'available' | 'locked'
@@ -79,7 +79,7 @@ export function FloatingPart({ id, index, count, highlight }: FloatingPartProps)
     [model, displayScale],
   )
   const seed = useMemo(() => hashString(id), [id])
-  const materials = useMemo(() => createHologramMaterials(), [])
+  const materials = useMemo(() => createHologramPair(model.bounds), [model])
 
   const group = useRef<Group>(null)
   const motion = useRef<Motion>({
@@ -98,7 +98,7 @@ export function FloatingPart({ id, index, count, highlight }: FloatingPartProps)
   const camera = useThree((state) => state.camera)
   const controls = useThree((state) => state.controls) as OrbitControlsImpl | null
 
-  useEffect(() => () => disposeHologramMaterials(materials), [materials])
+  useEffect(() => () => disposeHologramPair(materials), [materials])
 
   useEffect(() => {
     const position = new Vector3()
@@ -275,6 +275,7 @@ export function FloatingPart({ id, index, count, highlight }: FloatingPartProps)
           node.position.copy(target)
           emitFlash(target)
           m.phase = 'idle'
+          freshInstalls.add(id)
           workshop.commitInstall(id)
         }
         break
@@ -308,8 +309,10 @@ export function FloatingPart({ id, index, count, highlight }: FloatingPartProps)
     const base = highlight === 'next' ? 0.5 + 0.35 * pulse : highlight === 'available' ? 0.42 : 0.14
     const boost = hovered ? 0.3 : 0
     const flying = m.phase === 'fly' || m.phase === 'drag' ? 0.3 : 0
-    materials.wire.opacity = Math.min(1, base + boost + flying)
-    materials.fill.opacity = (highlight === 'locked' ? 0.025 : 0.07) + boost * 0.25 + flying * 0.2
+    materials.shell.time = time
+    materials.wire.time = time
+    materials.wire.alpha = Math.min(1, base + boost + flying)
+    materials.shell.alpha = (highlight === 'locked' ? 0.26 : 0.55) + boost * 0.4 + flying * 0.3
   })
 
   return (
@@ -329,7 +332,7 @@ export function FloatingPart({ id, index, count, highlight }: FloatingPartProps)
       </mesh>
       {model.pieces.map((piece) => (
         <group key={piece.finish}>
-          <mesh geometry={piece.geometry} material={materials.fill} raycast={() => null} />
+          <mesh geometry={piece.geometry} material={materials.shell} raycast={() => null} />
           <mesh geometry={piece.geometry} material={materials.wire} raycast={() => null} />
         </group>
       ))}

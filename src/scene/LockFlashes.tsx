@@ -49,11 +49,11 @@ export function LockFlashes() {
       light.intensity = 60 * Math.pow(1 - k, 2)
       shell.visible = true
       shell.position.copy(flash.position)
-      const scale = 0.15 + k * 1.4
+      const scale = 0.1 + k * 0.9
       shell.scale.setScalar(scale)
       const material = shell.material
       if (!Array.isArray(material) && 'opacity' in material) {
-        material.opacity = 0.6 * Math.pow(1 - k, 1.5)
+        material.opacity = 0.5 * Math.pow(1 - k, 2)
       }
       if (k >= 1) flash.active = false
     })

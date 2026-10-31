@@ -4,12 +4,11 @@ import { Color } from 'three'
 import { getPartModel } from '../parts/model'
 import { PART_BY_ID } from '../parts/registry'
 import type { PartId } from '../parts/types'
-import { HOLO_COLOR, HOLO_COLOR_SOFT, toVector3 } from './constants'
+import { HOLO_COLOR, toVector3 } from './constants'
 import { onDenied } from './effectsBus'
-import { createHologramMaterials, disposeHologramMaterials } from './materials'
+import { createHologramPair, disposeHologramPair } from './materials'
 
-const DENIED_COLOR = new Color('#ff3b5c').multiplyScalar(2.2)
-const DENIED_SOFT = new Color('#ff3b5c').multiplyScalar(1.2)
+const DENIED_COLOR = new Color('#ff3b5c').multiplyScalar(2.4)
 
 interface GhostTargetProps {
   id: PartId
@@ -19,10 +18,10 @@ interface GhostTargetProps {
 export function GhostTarget({ id }: GhostTargetProps) {
   const definition = PART_BY_ID[id]
   const model = getPartModel(id)
-  const materials = useMemo(() => createHologramMaterials(), [])
+  const materials = useMemo(() => createHologramPair(model.bounds), [model])
   const denied = useRef(0)
 
-  useEffect(() => () => disposeHologramMaterials(materials), [materials])
+  useEffect(() => () => disposeHologramPair(materials), [materials])
   useEffect(
     () =>
       onDenied(() => {
@@ -35,10 +34,12 @@ export function GhostTarget({ id }: GhostTargetProps) {
     const pulse = 0.5 + 0.5 * Math.sin(clock.elapsedTime * 3.2)
     denied.current = Math.max(0, denied.current - dt * 2.2)
     const k = denied.current
-    materials.wire.color.copy(HOLO_COLOR).lerp(DENIED_COLOR, k)
-    materials.fill.color.copy(HOLO_COLOR_SOFT).lerp(DENIED_SOFT, k)
-    materials.wire.opacity = 0.22 + 0.2 * pulse + 0.4 * k
-    materials.fill.opacity = 0.05 + 0.05 * pulse + 0.1 * k
+    materials.wire.tint.copy(HOLO_COLOR).lerp(DENIED_COLOR, k)
+    materials.shell.tint.copy(HOLO_COLOR).lerp(DENIED_COLOR, k)
+    materials.wire.time = clock.elapsedTime
+    materials.shell.time = clock.elapsedTime
+    materials.wire.alpha = 0.22 + 0.2 * pulse + 0.5 * k
+    materials.shell.alpha = 0.25 + 0.15 * pulse + 0.5 * k
   })
 
   const position = useMemo(() => toVector3(definition.transform.position), [definition])
@@ -53,7 +54,7 @@ export function GhostTarget({ id }: GhostTargetProps) {
     >
       {model.pieces.map((piece) => (
         <group key={piece.finish}>
-          <mesh geometry={piece.geometry} material={materials.fill} raycast={() => null} />
+          <mesh geometry={piece.geometry} material={materials.shell} raycast={() => null} />
           <mesh geometry={piece.geometry} material={materials.wire} raycast={() => null} />
         </group>
       ))}

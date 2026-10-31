@@ -1,4 +1,5 @@
 import type { Vector3 } from 'three'
+import type { PartId } from '../parts/types'
 
 /**
  * Tiny pub/sub for one-shot scene effects (lock-in flash, denied pulse) so that
@@ -27,3 +28,6 @@ export function onDenied(listener: DeniedListener): () => void {
 export function emitDenied(): void {
   deniedListeners.forEach((listener) => listener())
 }
+
+/** Parts committed during this session; InstalledPart plays the materialise wipe for these only. */
+export const freshInstalls = new Set<PartId>()

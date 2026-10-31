@@ -1,14 +1,8 @@
-import {
-  AdditiveBlending,
-  Color,
-  DoubleSide,
-  MeshBasicMaterial,
-  MeshPhysicalMaterial,
-  MeshStandardMaterial,
-} from 'three'
+import { Color, MeshPhysicalMaterial, MeshStandardMaterial, type Box3 } from 'three'
 import type { Finish } from '../parts/types'
+import { HologramMaterial } from '../shaders/hologram'
 import type { Livery } from '../state/store'
-import { HOLO_COLOR, HOLO_COLOR_SOFT } from './constants'
+import { HOLO_COLOR } from './constants'
 
 interface FinishPreset {
   color: string
@@ -65,35 +59,22 @@ export function createFinishMaterial(finish: Finish, livery: Livery): MeshStanda
   return material
 }
 
-export interface HologramMaterials {
-  wire: MeshBasicMaterial
-  fill: MeshBasicMaterial
+export interface HologramPair {
+  /** Fresnel shell. */
+  shell: HologramMaterial
+  /** Wireframe overlay. */
+  wire: HologramMaterial
 }
 
-/** Wireframe-plus-fill hologram look for floating parts and ghost targets. */
-export function createHologramMaterials(): HologramMaterials {
+/** Shell plus wireframe hologram for floating parts, ghost targets and the materialise pass. */
+export function createHologramPair(bounds: Box3): HologramPair {
   return {
-    wire: new MeshBasicMaterial({
-      color: HOLO_COLOR,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.45,
-      depthWrite: false,
-      toneMapped: false,
-    }),
-    fill: new MeshBasicMaterial({
-      color: HOLO_COLOR_SOFT,
-      transparent: true,
-      opacity: 0.08,
-      depthWrite: false,
-      blending: AdditiveBlending,
-      side: DoubleSide,
-      toneMapped: false,
-    }),
+    shell: new HologramMaterial({ bounds, color: HOLO_COLOR, opacity: 0.6 }),
+    wire: new HologramMaterial({ bounds, color: HOLO_COLOR, opacity: 0.5, wireframe: true }),
   }
 }
 
-export function disposeHologramMaterials(materials: HologramMaterials): void {
-  materials.wire.dispose()
-  materials.fill.dispose()
+export function disposeHologramPair(pair: HologramPair): void {
+  pair.shell.dispose()
+  pair.wire.dispose()
 }
