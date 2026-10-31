@@ -10,12 +10,14 @@ export function CarRoot() {
   const installing = useWorkshop((state) => state.installing)
   const mode = useWorkshop((state) => state.mode)
   const hovered = useWorkshop((state) => state.hovered)
+  const exploded = useWorkshop((state) => state.exploded)
   const next = useNextGuided()
   const installable = useInstallable()
 
   const guidedGhost = mode === 'guided' ? next : null
   const freeGhost = mode === 'free' && hovered && installable.includes(hovered) ? hovered : null
-  const ghost = installing ?? guidedGhost ?? freeGhost
+  // The ghost would sit inside the exploded cloud, so it hides while the view is exploded.
+  const ghost = exploded ? null : (installing ?? guidedGhost ?? freeGhost)
 
   return (
     <group name="car-root">

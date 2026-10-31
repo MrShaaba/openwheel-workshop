@@ -7,10 +7,17 @@ const LABELS: Record<CameraPreset, string> = {
   rear: 'Rear',
   cockpit: 'Cockpit',
   hero: 'Hero',
+  exploded: 'Exploded',
 }
 
 export function CameraPresets() {
   const requestCamera = useWorkshop((state) => state.requestCamera)
+  const exploded = useWorkshop((state) => state.exploded)
+  const toggleExploded = useWorkshop((state) => state.toggleExploded)
+  const canExplode = useWorkshop(
+    (state) => state.installed.length > 0 && !state.installing && !state.assembling,
+  )
+
   return (
     <div className="camera-presets">
       <span className="label">Camera</span>
@@ -26,6 +33,18 @@ export function CameraPresets() {
             <kbd>{index + 1}</kbd>
           </button>
         ))}
+      </div>
+      <div className="btn-group">
+        <button
+          type="button"
+          className={`hud-btn ${exploded ? 'active' : ''}`}
+          onClick={toggleExploded}
+          aria-pressed={exploded}
+          disabled={!exploded && !canExplode}
+        >
+          Exploded view
+          <kbd>E</kbd>
+        </button>
       </div>
     </div>
   )

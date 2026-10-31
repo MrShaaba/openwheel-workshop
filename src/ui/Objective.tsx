@@ -8,6 +8,7 @@ export function Objective() {
   const installing = useWorkshop((state) => state.installing)
   const attemptInstall = useWorkshop((state) => state.attemptInstall)
   const inspecting = useWorkshop((state) => state.inspecting)
+  const exploded = useWorkshop((state) => state.exploded)
   const next = useNextGuided()
   const installable = useInstallable()
   const complete = installedCount === PART_COUNT
@@ -20,10 +21,14 @@ export function Objective() {
     label = 'INSPECTING'
     title = PART_BY_ID[inspecting].name
     hint = 'Read the card, detach the part, or press ESC to return'
+  } else if (exploded) {
+    label = 'EXPLODED VIEW'
+    title = 'Assembly breakdown'
+    hint = 'Hover a part to identify it. Press E to collapse the car.'
   } else if (complete) {
     label = 'STATUS'
     title = 'Assembly complete'
-    hint = 'Every part is installed. Click any part to inspect it.'
+    hint = 'Every part is installed. Click any part to inspect it, or press E for the exploded view.'
   } else if (installing) {
     label = 'INSTALLING'
     title = PART_BY_ID[installing].name
@@ -38,14 +43,14 @@ export function Objective() {
   }
 
   const candidate = mode === 'guided' ? next : (installable[0] ?? null)
-  const canInstall = !complete && !installing && candidate !== null
+  const canInstall = !complete && !installing && !exploded && candidate !== null
 
   return (
     <div className="panel objective" aria-live="polite">
       <div className="label">{label}</div>
       <div className="objective-title">{title}</div>
       <div className="objective-hint">{hint}</div>
-      {!complete && !inspecting && (
+      {!complete && !inspecting && !exploded && (
         <div className="objective-actions">
           <button
             type="button"

@@ -5,6 +5,9 @@ export function KeyLegend() {
         <kbd>SPACE</kbd> install next
       </span>
       <span>
+        <kbd>E</kbd> exploded view
+      </span>
+      <span>
         <kbd>1-6</kbd> views
       </span>
       <span>

@@ -5,7 +5,8 @@ import type { PartId } from '../parts/types'
 
 export type { BuildMode } from '../parts/graph'
 
-export type CameraPreset = 'front' | 'side' | 'top' | 'rear' | 'cockpit' | 'hero'
+/** Named camera poses. The first six sit on the HUD and keys 1 to 6; `exploded` backs Exploded View. */
+export type CameraPreset = 'front' | 'side' | 'top' | 'rear' | 'cockpit' | 'hero' | 'exploded'
 
 export const CAMERA_PRESETS: readonly CameraPreset[] = [
   'front',
@@ -46,6 +47,16 @@ export interface Toast {
   nonce: number
 }
 
+/** Outcome of an install request: the dependency-graph reasons plus two session-level blocks. */
+export type InstallResult =
+  | InstallCheck
+  | {
+      ok: false
+      reason: 'exploded' | 'assembling'
+      missing: readonly PartId[]
+      expected: PartId | null
+    }
+
 export interface WorkshopState {
   // Persisted in a later phase
   installed: PartId[]
@@ -66,7 +77,7 @@ export interface WorkshopState {
 
   // Actions
   setReady: () => void
-  attemptInstall: (id: PartId) => InstallCheck
+  attemptInstall: (id: PartId) => InstallResult
   commitInstall: (id: PartId) => void
   cancelInstall: () => void
   detach: (id: PartId) => void
@@ -74,6 +85,7 @@ export interface WorkshopState {
   inspect: (id: PartId | null) => void
   hover: (id: PartId | null) => void
   setDragging: (id: PartId | null) => void
+  toggleExploded: () => void
   requestCamera: (preset: CameraPreset) => void
   focusPart: (id: PartId) => void
   toggleMute: () => void
@@ -86,7 +98,9 @@ export interface WorkshopState {
 let nonce = 0
 const nextNonce = (): number => ++nonce
 
-function describeDenial(check: Exclude<InstallCheck, { ok: true }>): string {
+const makeToast = (text: string, tone: ToastTone): Toast => ({ text, tone, nonce: nextNonce() })
+
+function describeDenial(check: Exclude<InstallResult, { ok: true }>): string {
   switch (check.reason) {
     case 'installed':
       return 'Already installed'
@@ -98,6 +112,10 @@ function describeDenial(check: Exclude<InstallCheck, { ok: true }>): string {
       return check.expected
         ? `Guided build: install ${PART_BY_ID[check.expected].name} first`
         : 'Nothing left to install'
+    case 'exploded':
+      return 'Collapse the exploded view first'
+    case 'assembling':
+      return 'Assembly in progress'
   }
 }
 
@@ -121,11 +139,14 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
 
   attemptInstall: (id) => {
     const state = get()
-    const check = checkInstall(id, state.installed, state.mode, state.installing)
+    const blocked = state.exploded ? 'exploded' : state.assembling ? 'assembling' : null
+    const check: InstallResult = blocked
+      ? { ok: false, reason: blocked, missing: [], expected: null }
+      : checkInstall(id, state.installed, state.mode, state.installing)
     if (check.ok) {
       set({ installing: id, inspecting: null, hovered: null })
     } else if (check.reason !== 'busy') {
-      set({ toast: { text: describeDenial(check), tone: 'denied', nonce: nextNonce() } })
+      set({ toast: makeToast(describeDenial(check), 'denied') })
     }
     return check
   },
@@ -151,11 +172,41 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
 
   setMode: (mode) => set({ mode }),
 
-  inspect: (id) => set((state) => (state.inspecting === id ? {} : { inspecting: id })),
+  inspect: (id) =>
+    set((state) =>
+      state.inspecting === id || (id && state.exploded) ? {} : { inspecting: id },
+    ),
 
   hover: (id) => set((state) => (state.hovered === id ? {} : { hovered: id })),
 
   setDragging: (id) => set((state) => (state.dragging === id ? {} : { dragging: id })),
+
+  toggleExploded: () => {
+    const state = get()
+    if (state.exploded) {
+      set({ exploded: false })
+      return
+    }
+    if (state.installing || state.assembling) {
+      set({
+        toast: makeToast(
+          state.assembling ? 'Assembly in progress' : 'Wait for the current part to lock in',
+          'denied',
+        ),
+      })
+      return
+    }
+    if (state.installed.length === 0) {
+      set({ toast: makeToast('Install a part first', 'denied') })
+      return
+    }
+    set({
+      exploded: true,
+      inspecting: null,
+      hovered: null,
+      cameraRequest: { kind: 'preset', preset: 'exploded', nonce: nextNonce() },
+    })
+  },
 
   requestCamera: (preset) => set({ cameraRequest: { kind: 'preset', preset, nonce: nextNonce() } }),
 
@@ -163,7 +214,7 @@ export const useWorkshop = create<WorkshopState>()((set, get) => ({
 
   toggleMute: () => set((state) => ({ muted: !state.muted })),
 
-  notify: (text, tone = 'info') => set({ toast: { text, tone, nonce: nextNonce() } }),
+  notify: (text, tone = 'info') => set({ toast: makeToast(text, tone) }),
 
   dismissToast: () => set({ toast: null }),
 

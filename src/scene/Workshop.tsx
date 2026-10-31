@@ -1,3 +1,4 @@
+import { useWorkshop } from '../state/store'
 import { CarRoot } from './CarRoot'
 import { Dust } from './Dust'
 import { Floor } from './Floor'
@@ -8,6 +9,8 @@ import { Platform } from './Platform'
 
 /** The holographic workshop: floor, lights, platform and atmosphere. The car lives on the platform. */
 export function Workshop() {
+  const exploded = useWorkshop((state) => state.exploded)
+
   return (
     <group>
       <Lighting />
@@ -16,7 +19,7 @@ export function Workshop() {
       <Dust />
       <Platform>
         <CarRoot />
-        <InventoryRing />
+        {exploded ? null : <InventoryRing />}
       </Platform>
     </group>
   )
