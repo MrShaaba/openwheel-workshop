@@ -13,9 +13,11 @@ const LINES = [
   'linking camera rig',
 ]
 
-/** Boot-sequence overlay shown until the first frame renders and the sequence has played. */
+/** Boot-sequence overlay shown until the saved build is restored, the first frame renders and the sequence has played. */
 export function LoadingScreen() {
   const ready = useWorkshop((state) => state.ready)
+  const hydrated = useWorkshop((state) => state.hydrated)
+  const saved = useWorkshop((state) => (state.hydrated ? state.installed.length : 0))
   const [elapsed, setElapsed] = useState(false)
 
   useEffect(() => {
@@ -23,7 +25,9 @@ export function LoadingScreen() {
     return () => window.clearTimeout(timer)
   }, [])
 
-  const show = !(ready && elapsed)
+  const show = !(ready && elapsed && hydrated)
+  const lines =
+    saved > 0 ? [...LINES, `restoring saved build [${saved} part${saved === 1 ? '' : 's'}]`] : LINES
 
   return (
     <AnimatePresence>
@@ -41,7 +45,7 @@ export function LoadingScreen() {
               animate="show"
               variants={{ show: { transition: { staggerChildren: 0.26 } } }}
             >
-              {LINES.map((line) => (
+              {lines.map((line) => (
                 <motion.div
                   key={line}
                   variants={{ hidden: { opacity: 0, x: -6 }, show: { opacity: 1, x: 0 } }}

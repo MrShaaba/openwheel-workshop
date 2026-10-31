@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useAudio } from './audio/useAudio'
 import { useKeyboard } from './hooks/useKeyboard'
+import { useResumeNotice } from './hooks/useResumeNotice'
 import { markInteraction } from './scene/interaction'
 import { WorkshopCanvas } from './scene/WorkshopCanvas'
 import { HUD } from './ui/HUD'
@@ -9,6 +10,7 @@ import { LoadingScreen } from './ui/LoadingScreen'
 export default function App() {
   useKeyboard()
   useAudio()
+  useResumeNotice()
 
   useEffect(() => {
     const options: AddEventListenerOptions = { passive: true }
