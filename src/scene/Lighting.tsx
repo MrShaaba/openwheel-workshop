@@ -8,6 +8,7 @@ import { BackSide } from 'three'
 export function Lighting() {
   return (
     <>
+      <StudioEnvironment />
       <ambientLight intensity={0.12} color="#6fb6ff" />
       <spotLight
         position={[0, 10, 0]}
@@ -27,7 +28,14 @@ export function Lighting() {
         color="#ff4fa3"
       />
       <pointLight position={[0, 1.2, 6.5]} intensity={10} distance={14} decay={2} color="#7fd8ff" />
+    </>
+  )
+}
 
+/** Cool studio reflections for carbon, paint and metal, shared by the workshop and the track. */
+export function StudioEnvironment() {
+  return (
+    <>
       <Environment resolution={128} frames={1} background={false}>
         <mesh scale={60}>
           <sphereGeometry args={[1, 16, 16]} />

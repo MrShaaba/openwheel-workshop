@@ -1,3 +1,5 @@
+import { TEST_DRIVE_ENABLED } from '../lib/flags'
+
 export function KeyLegend() {
   return (
     <div className="legend" aria-label="Keyboard shortcuts">
@@ -10,6 +12,11 @@ export function KeyLegend() {
       <span>
         <kbd>L</kbd> paint shop
       </span>
+      {TEST_DRIVE_ENABLED && (
+        <span>
+          <kbd>D</kbd> test drive
+        </span>
+      )}
       <span>
         <kbd>1-6</kbd> views
       </span>

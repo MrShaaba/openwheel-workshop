@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { PART_COUNT } from '../parts/registry'
 import { useWorkshop } from '../state/store'
 
@@ -17,7 +18,14 @@ export function SystemsOnline() {
     if (celebration === null) return
     const timer = window.setTimeout(() => {
       setExpired(celebration)
-      useWorkshop.getState().notify('Paint shop unlocked: press L to open it', 'success')
+      useWorkshop
+        .getState()
+        .notify(
+          TEST_DRIVE_ENABLED
+            ? 'Paint shop and test drive unlocked: L to paint, D to drive'
+            : 'Paint shop unlocked: press L to open it',
+          'success',
+        )
     }, SHOW_SECONDS * 1000)
     return () => window.clearTimeout(timer)
   }, [celebration])

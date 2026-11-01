@@ -606,6 +606,23 @@
   }
 }
 
+/* ---------- Scene fade (workshop to track and back) ---------- */
+
+.scene-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.scene-fade.in {
+  opacity: 1;
+  transition-duration: 0.3s;
+}
+
 /* ---------- Responsive ---------- */
 
 /* Narrow desktop: tighter columns, the checklist starts collapsed. */

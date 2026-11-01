@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import {
   checkInstall,
   dependentsOf,
@@ -74,6 +75,13 @@ export interface WorkshopState extends PersistedState {
   celebration: number | null
   /** The paint shop panel. Only meaningful while the car is complete. */
   liveryOpen: boolean
+  /** Test-drive mode (behind VITE_ENABLE_TEST_DRIVE): the user has asked to drive or to come back. */
+  driving: boolean
+  /**
+   * Whether the track scene is the one mounted. Follows `driving` once the fade to black has
+   * covered the screen, so the scene swap and the camera jump are never visible.
+   */
+  trackScene: boolean
 
   // Actions
   setReady: () => void
@@ -104,6 +112,10 @@ export interface WorkshopState extends PersistedState {
   /** Opens or closes the paint shop; refused with a toast until the car is complete. */
   toggleLivery: () => void
   closeLivery: () => void
+  /** Leaves the workshop for the track; refused with a toast until the car is complete. */
+  startDrive: () => void
+  stopDrive: () => void
+  setTrackScene: (mounted: boolean) => void
   reset: () => void
 }
 
@@ -157,6 +169,8 @@ export const useWorkshop = create<WorkshopState>()(
       toast: null,
       celebration: null,
       liveryOpen: false,
+      driving: false,
+      trackScene: false,
 
       setReady: () => set({ ready: true }),
 
@@ -224,6 +238,7 @@ export const useWorkshop = create<WorkshopState>()(
 
       toggleExploded: () => {
         const state = get()
+        if (state.driving) return
         if (state.exploded) {
           set({ exploded: false })
           return
@@ -296,6 +311,7 @@ export const useWorkshop = create<WorkshopState>()(
 
       toggleLivery: () => {
         const state = get()
+        if (state.driving) return
         if (state.liveryOpen) {
           set({ liveryOpen: false })
           return
@@ -323,6 +339,42 @@ export const useWorkshop = create<WorkshopState>()(
 
       closeLivery: () => set((state) => (state.liveryOpen ? { liveryOpen: false } : {})),
 
+      startDrive: () => {
+        if (!TEST_DRIVE_ENABLED) return
+        const state = get()
+        if (state.driving) return
+        if (state.installed.length < PART_COUNT) {
+          set({ toast: makeToast('Complete the car to unlock the test drive', 'denied') })
+          return
+        }
+        if (state.exploded) {
+          set({ toast: makeToast('Collapse the exploded view first', 'denied') })
+          return
+        }
+        set({
+          driving: true,
+          inspecting: null,
+          hovered: null,
+          dragging: null,
+          liveryOpen: false,
+          toast: null,
+        })
+      },
+
+      stopDrive: () =>
+        set((state) =>
+          state.driving
+            ? {
+                driving: false,
+                // The chase camera leaves the camera near the car; the rig flies it back to hero.
+                cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
+              }
+            : {},
+        ),
+
+      setTrackScene: (mounted) =>
+        set((state) => (state.trackScene === mounted ? {} : { trackScene: mounted })),
+
       reset: () =>
         set({
           installed: [],
@@ -334,6 +386,7 @@ export const useWorkshop = create<WorkshopState>()(
           assembling: false,
           celebration: null,
           liveryOpen: false,
+          driving: false,
           cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
         }),
     }),

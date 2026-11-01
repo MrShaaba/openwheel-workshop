@@ -1,3 +1,6 @@
+import { useEffect } from 'react'
+import { preloadDrive } from '../drive/lazy'
+import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { remainingIds } from '../parts/graph'
 import { PART_BY_ID, PART_COUNT } from '../parts/registry'
 import { useInstallable, useNextGuided } from '../state/selectors'
@@ -17,9 +20,15 @@ export function Objective() {
   const finishAssembly = useWorkshop((state) => state.finishAssembly)
   const liveryOpen = useWorkshop((state) => state.liveryOpen)
   const toggleLivery = useWorkshop((state) => state.toggleLivery)
+  const startDrive = useWorkshop((state) => state.startDrive)
   const next = useNextGuided()
   const installable = useInstallable()
   const complete = installedCount === PART_COUNT
+
+  // Fetch the drive chunk as soon as it could be wanted, so the swap behind the fade is instant.
+  useEffect(() => {
+    if (complete && TEST_DRIVE_ENABLED) preloadDrive()
+  }, [complete])
 
   let label = 'CURRENT OBJECTIVE'
   let title: string
@@ -38,7 +47,9 @@ export function Objective() {
     title = 'Assembly complete'
     hint = liveryOpen
       ? 'Pick a pattern, colours and a number. Changes are saved with the build.'
-      : 'Open the paint shop with L, inspect any part, press E for the exploded view, or Reset build.'
+      : TEST_DRIVE_ENABLED
+        ? 'Paint it with L, take it out with D, inspect any part, press E for the exploded view, or Reset build.'
+        : 'Open the paint shop with L, inspect any part, press E for the exploded view, or Reset build.'
   } else if (assembling) {
     label = 'ASSEMBLING'
     title = installing ? PART_BY_ID[installing].name : 'Sequencing parts'
@@ -89,6 +100,12 @@ export function Objective() {
             Paint shop
             <kbd aria-hidden="true">L</kbd>
           </button>
+          {TEST_DRIVE_ENABLED && (
+            <button type="button" className="hud-btn" onClick={startDrive} aria-keyshortcuts="D">
+              Test drive
+              <kbd aria-hidden="true">D</kbd>
+            </button>
+          )}
         </div>
       )}
       {!complete && !inspecting && !exploded && (

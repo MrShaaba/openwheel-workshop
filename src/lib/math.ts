@@ -22,3 +22,13 @@ export function createRng(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
+
+/** Wrap an angle into (-PI, PI]. */
+export const wrapAngle = (angle: number): number => {
+  const wrapped = angle % TAU
+  return wrapped > Math.PI ? wrapped - TAU : wrapped <= -Math.PI ? wrapped + TAU : wrapped
+}
+
+/** `damp` for angles: approaches `target` the short way round. */
+export const dampAngle = (current: number, target: number, lambda: number, dt: number): number =>
+  current + wrapAngle(target - current) * (1 - Math.exp(-lambda * dt))

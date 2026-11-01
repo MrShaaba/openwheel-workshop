@@ -2,6 +2,7 @@ import { PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useState } from 'react'
 import { exposeDebugHandle } from '../debug'
+import { DriveScene } from '../drive/lazy'
 import { useWorkshop } from '../state/store'
 import { AssemblyDirector } from './AssemblyDirector'
 import { CameraRig } from './CameraRig'
@@ -13,6 +14,11 @@ import { Workshop } from './Workshop'
 
 /** Retina screens render at 1.5x: with SMAA below that and the pixel density above, 2x is not visible. */
 const MAX_DPR = 1.5
+
+type FogArgs = [color: string, near: number, far: number]
+const WORKSHOP_FOG: FogArgs = [BACKGROUND, 18, 48]
+/** The circuit is hundreds of metres across, so its fog starts and ends much further out. */
+const TRACK_FOG: FogArgs = [BACKGROUND, 80, 520]
 
 /** Flips the store's `ready` flag once the first frame has rendered, so the boot screen can clear. */
 function ReadySignal() {
@@ -28,6 +34,7 @@ function ReadySignal() {
 export function WorkshopCanvas() {
   const [dpr, setDpr] = useState(() => Math.min(window.devicePixelRatio || 1, MAX_DPR))
   const ceiling = Math.min(window.devicePixelRatio || 1, MAX_DPR)
+  const trackScene = useWorkshop((state) => state.trackScene)
 
   return (
     <Canvas
@@ -43,7 +50,7 @@ export function WorkshopCanvas() {
       }}
     >
       <color attach="background" args={[BACKGROUND]} />
-      <fog attach="fog" args={[BACKGROUND, 18, 48]} />
+      <fog attach="fog" args={trackScene ? TRACK_FOG : WORKSHOP_FOG} />
       {/* Averages over about four seconds so a one-off hitch (many parts mounting at once) does not
           drop the pixel ratio; it moves in quarter steps between 1 and the ceiling. */}
       <PerformanceMonitor
@@ -55,8 +62,17 @@ export function WorkshopCanvas() {
         onFallback={() => setDpr(1)}
       />
       <Suspense fallback={null}>
-        <Workshop />
-        <CameraRig />
+        {trackScene ? (
+          // Its own boundary, so the chunk loading never blanks the effects or the ready signal.
+          <Suspense fallback={null}>
+            <DriveScene />
+          </Suspense>
+        ) : (
+          <>
+            <Workshop />
+            <CameraRig />
+          </>
+        )}
         <AssemblyDirector />
         <Effects />
         <ReadySignal />

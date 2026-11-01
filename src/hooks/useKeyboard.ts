@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
+import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { installableIds, nextGuidedPart } from '../parts/graph'
 import { markInteraction } from '../scene/interaction'
 import { CAMERA_PRESETS, useWorkshop } from '../state/store'
 
 const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
-/** Global shortcuts: Space installs next, E exploded view, L paint shop, R hero camera, 1 to 6 presets, M mute, Esc closes. */
+/** Global shortcuts: Space installs next, E exploded view, L paint shop, D test drive, R hero camera, 1 to 6 presets, M mute, Esc closes. */
 export function useKeyboard(): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -20,6 +21,15 @@ export function useKeyboard(): void {
 
       const state = useWorkshop.getState()
       const key = event.key
+
+      if (state.driving) {
+        // The track owns the keyboard (src/drive/input.ts); only leaving and mute stay global.
+        if (key === 'Escape') state.stopDrive()
+        else if (key.toLowerCase() === 'm') state.toggleMute()
+        else return
+        markInteraction()
+        return
+      }
 
       if (key >= '1' && key <= '6') {
         const preset = CAMERA_PRESETS[Number(key) - 1]
@@ -49,6 +59,10 @@ export function useKeyboard(): void {
           break
         case 'l':
           state.toggleLivery()
+          break
+        case 'd':
+          if (!TEST_DRIVE_ENABLED) return
+          state.startDrive()
           break
         case 'm':
           state.toggleMute()

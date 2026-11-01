@@ -33,7 +33,7 @@ export default defineConfig([
   {
     // Scene code mutates three.js objects (uniforms, transforms, opacity) from the
     // frame loop by design. The React Compiler's immutability rule does not model that.
-    files: ['src/scene/**/*.tsx', 'src/shaders/**/*.ts'],
+    files: ['src/scene/**/*.tsx', 'src/shaders/**/*.ts', 'src/drive/**/*.tsx'],
     rules: {
       'react-hooks/immutability': 'off',
     },
