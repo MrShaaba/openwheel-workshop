@@ -27,12 +27,7 @@ export default function DriveHUD() {
             Reset car
             <kbd aria-hidden="true">R</kbd>
           </button>
-          <button
-            type="button"
-            className="hud-btn"
-            onClick={stopDrive}
-            aria-keyshortcuts="Escape"
-          >
+          <button type="button" className="hud-btn" onClick={stopDrive} aria-keyshortcuts="Escape">
             Back to workshop
             <kbd aria-hidden="true">ESC</kbd>
           </button>

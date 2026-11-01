@@ -89,7 +89,13 @@ export function DriveCar() {
           <PartMeshes key={part.id} id={part.id} />
         ))}
         {/* A soft key light rides with the car, so it is lit the same anywhere on the circuit. */}
-        <pointLight position={[0, 3.2, 0.4]} intensity={28} distance={14} decay={2} color="#dbeeff" />
+        <pointLight
+          position={[0, 3.2, 0.4]}
+          intensity={28}
+          distance={14}
+          decay={2}
+          color="#dbeeff"
+        />
         <pointLight position={[0, 0.25, 0]} intensity={5} distance={5} decay={2} color="#38e7ff" />
       </group>
       {WHEEL_IDS.map((id, index) => {

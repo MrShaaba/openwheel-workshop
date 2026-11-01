@@ -2,10 +2,11 @@
  * Session-only mutable state for the test drive, shared by the scene, the camera and the HUD without
  * React re-renders: one car, one lap record.
  */
+import { gridPose } from './track'
 import { createCarState, placeCar, type CarPose } from './physics'
 
 /** Where the car waits at the start: on the grid behind the line, pointing down the straight. */
-export const GRID_POSE: CarPose = { x: 0, z: 0, heading: 0 }
+export const GRID_POSE: CarPose = gridPose()
 
 export interface LapState {
   /** 0 before the first crossing of the line, then the lap in progress. */

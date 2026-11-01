@@ -18,7 +18,7 @@ const MAX_DPR = 1.5
 type FogArgs = [color: string, near: number, far: number]
 const WORKSHOP_FOG: FogArgs = [BACKGROUND, 18, 48]
 /** The circuit is hundreds of metres across, so its fog starts and ends much further out. */
-const TRACK_FOG: FogArgs = [BACKGROUND, 80, 520]
+const TRACK_FOG: FogArgs = [BACKGROUND, 40, 360]
 
 /** Flips the store's `ready` flag once the first frame has rendered, so the boot screen can clear. */
 function ReadySignal() {
