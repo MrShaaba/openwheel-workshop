@@ -15,7 +15,10 @@ export function SystemsOnline() {
 
   useEffect(() => {
     if (celebration === null) return
-    const timer = window.setTimeout(() => setExpired(celebration), SHOW_SECONDS * 1000)
+    const timer = window.setTimeout(() => {
+      setExpired(celebration)
+      useWorkshop.getState().notify('Paint shop unlocked: press L to open it', 'success')
+    }, SHOW_SECONDS * 1000)
     return () => window.clearTimeout(timer)
   }, [celebration])
 

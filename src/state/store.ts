@@ -72,6 +72,8 @@ export interface WorkshopState extends PersistedState {
   toast: Toast | null
   /** Bumped when the last part locks in; drives the completion sequence. Never restored from storage. */
   celebration: number | null
+  /** The paint shop panel. Only meaningful while the car is complete. */
+  liveryOpen: boolean
 
   // Actions
   setReady: () => void
@@ -98,6 +100,10 @@ export interface WorkshopState extends PersistedState {
   notify: (text: string, tone?: ToastTone) => void
   dismissToast: () => void
   setLivery: (livery: Partial<Livery>) => void
+  resetLivery: () => void
+  /** Opens or closes the paint shop; refused with a toast until the car is complete. */
+  toggleLivery: () => void
+  closeLivery: () => void
   reset: () => void
 }
 
@@ -150,6 +156,7 @@ export const useWorkshop = create<WorkshopState>()(
       cameraRequest: null,
       toast: null,
       celebration: null,
+      liveryOpen: false,
 
       setReady: () => set({ ready: true }),
 
@@ -197,6 +204,7 @@ export const useWorkshop = create<WorkshopState>()(
             installed: state.installed.filter((part) => !remove.has(part)),
             inspecting: null,
             hovered: null,
+            liveryOpen: false,
           }
         }),
 
@@ -206,7 +214,8 @@ export const useWorkshop = create<WorkshopState>()(
         set((state) =>
           state.inspecting === id || (id && (state.exploded || state.assembling))
             ? {}
-            : { inspecting: id },
+            : // The info card and the paint shop share the right-hand column.
+              { inspecting: id, ...(id ? { liveryOpen: false } : {}) },
         ),
 
       hover: (id) => set((state) => (state.hovered === id ? {} : { hovered: id })),
@@ -283,6 +292,37 @@ export const useWorkshop = create<WorkshopState>()(
 
       setLivery: (livery) => set((state) => ({ livery: { ...state.livery, ...livery } })),
 
+      resetLivery: () => set({ livery: DEFAULT_LIVERY }),
+
+      toggleLivery: () => {
+        const state = get()
+        if (state.liveryOpen) {
+          set({ liveryOpen: false })
+          return
+        }
+        if (state.installed.length < PART_COUNT) {
+          set({ toast: makeToast('Complete the car to unlock the paint shop', 'denied') })
+          return
+        }
+        set({
+          liveryOpen: true,
+          inspecting: null,
+          hovered: null,
+          // The hero angle shows the nose, a sidepod and the fin: every surface the livery paints.
+          ...(state.exploded
+            ? {}
+            : {
+                cameraRequest: {
+                  kind: 'preset' as const,
+                  preset: 'hero' as const,
+                  nonce: nextNonce(),
+                },
+              }),
+        })
+      },
+
+      closeLivery: () => set((state) => (state.liveryOpen ? { liveryOpen: false } : {})),
+
       reset: () =>
         set({
           installed: [],
@@ -293,6 +333,7 @@ export const useWorkshop = create<WorkshopState>()(
           exploded: false,
           assembling: false,
           celebration: null,
+          liveryOpen: false,
           cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
         }),
     }),

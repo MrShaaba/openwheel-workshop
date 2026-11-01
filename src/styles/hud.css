@@ -612,9 +612,10 @@
   box-shadow: none;
 }
 
-/* ---------- Info card ---------- */
+/* ---------- Info card and paint shop (right column) ---------- */
 
-.info-card {
+.info-card,
+.side-card {
   width: 320px;
   max-height: calc(100vh - 260px);
   overflow-y: auto;
@@ -719,10 +720,176 @@
 }
 
 @media (max-width: 900px) {
-  .info-card {
+  .info-card,
+  .side-card {
     width: 100%;
     max-height: 40vh;
   }
+}
+
+/* ---------- Paint shop ---------- */
+
+.livery-panel {
+  gap: 12px;
+  font-family: var(--mono);
+}
+
+.livery-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.livery-patterns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.pattern-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+}
+
+.pattern-swatch {
+  display: block;
+  width: 100%;
+  height: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--p);
+}
+
+.pattern-swatch.stripe {
+  background: linear-gradient(
+    90deg,
+    var(--p) 0 36%,
+    var(--a) 36% 41%,
+    var(--s) 41% 59%,
+    var(--a) 59% 64%,
+    var(--p) 64%
+  );
+}
+
+.pattern-swatch.split {
+  background: linear-gradient(90deg, var(--s) 0 46%, var(--a) 46% 53%, var(--p) 53%);
+}
+
+.pattern-swatch.fade {
+  background: linear-gradient(90deg, var(--s), var(--p));
+}
+
+.colour-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.colour-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colour-head label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.colour-value {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.colour-input {
+  pointer-events: auto;
+  width: 30px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(56, 231, 255, 0.35);
+  background: transparent;
+  cursor: pointer;
+}
+
+.colour-input::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.colour-input::-webkit-color-swatch {
+  border: 0;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.swatch {
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+}
+
+.swatch.active {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+}
+
+.number-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  gap: 6px;
+}
+
+.number-row .hud-btn {
+  padding: 7px 0;
+  font-size: 14px;
+}
+
+.number-input {
+  pointer-events: auto;
+  width: 100%;
+  min-width: 0;
+  font: 500 18px var(--mono);
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: #ffffff;
+  background: rgba(56, 231, 255, 0.05);
+  border: 1px solid rgba(56, 231, 255, 0.3);
+  padding: 4px;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.number-input::-webkit-inner-spin-button,
+.number-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.scheme-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.scheme-dots i {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* ---------- Systems online (completion banner) ---------- */

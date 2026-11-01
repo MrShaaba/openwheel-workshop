@@ -15,6 +15,8 @@ export function Objective() {
   const startAssembly = useWorkshop((state) => state.startAssembly)
   const stopAssembly = useWorkshop((state) => state.stopAssembly)
   const finishAssembly = useWorkshop((state) => state.finishAssembly)
+  const liveryOpen = useWorkshop((state) => state.liveryOpen)
+  const toggleLivery = useWorkshop((state) => state.toggleLivery)
   const next = useNextGuided()
   const installable = useInstallable()
   const complete = installedCount === PART_COUNT
@@ -34,7 +36,9 @@ export function Objective() {
   } else if (complete) {
     label = 'STATUS'
     title = 'Assembly complete'
-    hint = 'Click any part to inspect it, press E for the exploded view, or Reset build to start again.'
+    hint = liveryOpen
+      ? 'Pick a pattern, colours and a number. Changes are saved with the build.'
+      : 'Open the paint shop with L, inspect any part, press E for the exploded view, or Reset build.'
   } else if (assembling) {
     label = 'ASSEMBLING'
     title = installing ? PART_BY_ID[installing].name : 'Sequencing parts'
@@ -66,6 +70,19 @@ export function Objective() {
       <div className="label">{label}</div>
       <div className="objective-title">{title}</div>
       <div className="objective-hint">{hint}</div>
+      {complete && !inspecting && !exploded && (
+        <div className="objective-actions">
+          <button
+            type="button"
+            className={`hud-btn ${liveryOpen ? 'active' : ''}`}
+            onClick={toggleLivery}
+            aria-pressed={liveryOpen}
+          >
+            Paint shop
+            <kbd>L</kbd>
+          </button>
+        </div>
+      )}
       {!complete && !inspecting && !exploded && (
         <div className="objective-actions">
           {assembling ? (

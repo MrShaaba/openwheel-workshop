@@ -6,6 +6,7 @@ import { Floor } from './Floor'
 import { InventoryRing } from './InventoryRing'
 import { Lighting } from './Lighting'
 import { LightShafts } from './LightShafts'
+import { LiveryPainter } from './LiveryPainter'
 import { Platform } from './Platform'
 
 /** The holographic workshop: floor, lights, platform and atmosphere. The car lives on the platform. */
@@ -19,6 +20,7 @@ export function Workshop() {
       <LightShafts />
       <Dust />
       <CompletionFX />
+      <LiveryPainter />
       <Platform>
         <CarRoot />
         {exploded ? null : <InventoryRing />}

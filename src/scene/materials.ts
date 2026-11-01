@@ -1,7 +1,6 @@
 import { Color, MeshPhysicalMaterial, MeshStandardMaterial, type Box3 } from 'three'
 import type { Finish } from '../parts/types'
 import { HologramMaterial } from '../shaders/hologram'
-import type { Livery } from '../state/store'
 import { HOLO_COLOR } from './constants'
 
 interface FinishPreset {
@@ -30,10 +29,13 @@ export const FINISHES: Record<Finish, FinishPreset> = {
   },
 }
 
-/** Solid PBR material for a finish. Paint takes its colour from the livery. */
-export function createFinishMaterial(finish: Finish, livery: Livery): MeshStandardMaterial {
+/**
+ * Solid PBR material for a finish. Paint pieces get their colour from the shared livery masks once
+ * `applyMaterialize` patches them; the preset colour only shows if that patch is skipped.
+ */
+export function createFinishMaterial(finish: Finish): MeshStandardMaterial {
   const preset = FINISHES[finish]
-  const color = finish === 'paint' ? livery.primary : preset.color
+  const color = preset.color
   if (finish === 'paint' || finish === 'glass') {
     return new MeshPhysicalMaterial({
       color,

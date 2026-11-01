@@ -6,6 +6,7 @@ import { CameraPresets } from './CameraPresets'
 import { HoverLabel } from './HoverLabel'
 import { InfoCard } from './InfoCard'
 import { KeyLegend } from './KeyLegend'
+import { LiveryPanel } from './LiveryPanel'
 import { ModeControls } from './ModeControls'
 import { Objective } from './Objective'
 import { StageChecklist } from './StageChecklist'
@@ -44,6 +45,7 @@ export function HUD() {
           <div />
           <aside className="hud-right">
             <InfoCard />
+            <LiveryPanel />
           </aside>
         </section>
 

@@ -5,12 +5,16 @@ import { CAMERA_PRESETS, useWorkshop } from '../state/store'
 
 const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
-/** Global shortcuts: Space installs next, E exploded view, R hero camera, 1 to 6 presets, M mute, Esc leaves Inspect. */
+/** Global shortcuts: Space installs next, E exploded view, L paint shop, R hero camera, 1 to 6 presets, M mute, Esc closes. */
 export function useKeyboard(): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (event.target instanceof HTMLElement && EDITABLE_TAGS.has(event.target.tagName)) return
+      if (event.target instanceof HTMLElement && EDITABLE_TAGS.has(event.target.tagName)) {
+        // Typing in a field never triggers shortcuts; Esc hands focus back to the page.
+        if (event.key === 'Escape') event.target.blur()
+        return
+      }
       // A dialog owns the keyboard while it is open.
       if (document.activeElement?.closest('[role="dialog"]')) return
 
@@ -43,11 +47,15 @@ export function useKeyboard(): void {
         case 'e':
           state.toggleExploded()
           break
+        case 'l':
+          state.toggleLivery()
+          break
         case 'm':
           state.toggleMute()
           break
         case 'escape':
-          if (state.assembling) state.stopAssembly()
+          if (state.liveryOpen) state.closeLivery()
+          else if (state.assembling) state.stopAssembly()
           else state.inspect(null)
           break
         default:

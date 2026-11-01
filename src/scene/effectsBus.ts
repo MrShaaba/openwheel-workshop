@@ -28,6 +28,5 @@ export function emitDenied(): void {
   deniedListeners.forEach((listener) => listener())
 }
 
-
 /** 0..1 glow level the completion sequence pushes into the platform materials each frame. */
 export const completionGlow = { value: 0 }

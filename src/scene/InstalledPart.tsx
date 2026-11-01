@@ -1,12 +1,6 @@
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  BufferGeometry,
-  Float32BufferAttribute,
-  Line,
-  LineDashedMaterial,
-  type Group,
-} from 'three'
+import { BufferGeometry, Float32BufferAttribute, Line, LineDashedMaterial, type Group } from 'three'
 import { easeInOutCubic } from '../lib/easing'
 import { clamp01, damp, lerp } from '../lib/math'
 import { getPartModel } from '../parts/model'
@@ -17,6 +11,7 @@ import { useWorkshop } from '../state/store'
 import { HOLO_COLOR_SOFT, toVector3 } from './constants'
 import { freshInstalls } from '../state/session'
 import { markInteraction } from './interaction'
+import { getLiveryUniforms } from './liveryTextures'
 import { createFinishMaterial, createHologramPair, disposeHologramPair } from './materials'
 import { hashString } from './ring'
 
@@ -67,21 +62,28 @@ function createTether(): Line {
 export function InstalledPart({ id }: InstalledPartProps) {
   const definition = PART_BY_ID[id]
   const model = getPartModel(id)
-  const livery = useWorkshop((state) => state.livery)
   const [fresh] = useState(() => freshInstalls.has(id))
   useEffect(() => {
     freshInstalls.delete(id)
   }, [id])
 
-  const uniforms = useMemo(() => createMaterializeUniforms(model.bounds), [model])
+  const uniforms = useMemo(
+    () => createMaterializeUniforms(model.bounds, definition.transform.position),
+    [model, definition],
+  )
+  // Paint pieces sample the shared livery masks, so a livery change never rebuilds a material.
   const materials = useMemo(
     () =>
       model.pieces.map((piece) => {
-        const material = createFinishMaterial(piece.finish, livery)
-        applyMaterialize(material, uniforms)
+        const material = createFinishMaterial(piece.finish)
+        applyMaterialize(
+          material,
+          uniforms,
+          piece.finish === 'paint' ? getLiveryUniforms() : undefined,
+        )
         return material
       }),
-    [model, livery, uniforms],
+    [model, uniforms],
   )
   const hologram = useMemo(() => createHologramPair(model.bounds), [model])
   const tether = useMemo(() => createTether(), [])

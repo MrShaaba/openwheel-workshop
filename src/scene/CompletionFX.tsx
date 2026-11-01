@@ -1,6 +1,12 @@
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
-import { AdditiveBlending, DoubleSide, type Mesh, type MeshBasicMaterial, type PointLight } from 'three'
+import {
+  AdditiveBlending,
+  DoubleSide,
+  type Mesh,
+  type MeshBasicMaterial,
+  type PointLight,
+} from 'three'
 import { easeOutCubic } from '../lib/easing'
 import { clamp01, damp, lerp } from '../lib/math'
 import { useWorkshop } from '../state/store'

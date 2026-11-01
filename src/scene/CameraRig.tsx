@@ -139,7 +139,10 @@ export function CameraRig() {
       SWEEP_SPEED *
       Math.min(1, active.elapsed / 0.8) *
       Math.min(1, (SWEEP_SECONDS - active.elapsed) / 1.2)
-    const offset = camera.position.clone().sub(orbit.target).applyAxisAngle(UP, speed * dt)
+    const offset = camera.position
+      .clone()
+      .sub(orbit.target)
+      .applyAxisAngle(UP, speed * dt)
     camera.position.copy(orbit.target).add(offset)
     orbit.update()
   })

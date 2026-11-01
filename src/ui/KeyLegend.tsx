@@ -8,6 +8,9 @@ export function KeyLegend() {
         <kbd>E</kbd> exploded view
       </span>
       <span>
+        <kbd>L</kbd> paint shop
+      </span>
+      <span>
         <kbd>1-6</kbd> views
       </span>
       <span>
