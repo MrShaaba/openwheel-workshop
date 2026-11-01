@@ -17,12 +17,45 @@ interface ServoVoice {
   gain: GainNode
 }
 
+/** What the engine voice follows each frame. Every value is 0 to 1. */
+export interface EngineParams {
+  revs: number
+  /** Throttle as applied: the note gets louder and brighter under load. */
+  load: number
+  /** Speed as a fraction of the maximum, for wind. */
+  speed: number
+  /** Tyre scrub past the grip limit. */
+  slip: number
+  /** Rumble on the run-off. */
+  gravel: number
+}
+
+interface EngineVoice {
+  oscillators: { osc: OscillatorNode; ratio: number }[]
+  filter: BiquadFilterNode
+  gain: GainNode
+  whistle: OscillatorNode
+  whistleGain: GainNode
+  windGain: GainNode
+  gravelGain: GainNode
+  squeal: OscillatorNode
+  squealGain: GainNode
+  squealNoiseGain: GainNode
+  sources: AudioScheduledSourceNode[]
+}
+
+/** Fundamental of the engine note at idle and at the red line, in hertz. */
+const ENGINE_F0 = [58, 410] as const
+/** Time constant for every engine parameter glide, so frame-rate updates never click. */
+const ENGINE_GLIDE = 0.035
+
 class Synth {
   private context: AudioContext | null = null
   private master: GainNode | null = null
   private noiseBuffer: AudioBuffer | null = null
   private muted = false
   private servoVoice: ServoVoice | null = null
+  private engine: EngineVoice | null = null
 
   /** Create or resume the context. Call from a user gesture. */
   unlock(): void {
@@ -243,6 +276,163 @@ class Synth {
       hiss.start(r.now)
       hiss.stop(r.now + 4.2)
     }
+  }
+
+  /**
+   * Continuous engine note for the test drive. Called every frame; creates the voice the first time
+   * audio is available and glides every parameter towards the new values.
+   */
+  engineUpdate(params: EngineParams): void {
+    const r = this.ready()
+    if (!r) return
+    const voice = this.engine ?? this.createEngine(r)
+    const { now } = r
+    const revs = Math.min(1, Math.max(0, params.revs))
+    const f0 = ENGINE_F0[0] + (ENGINE_F0[1] - ENGINE_F0[0]) * Math.pow(revs, 0.9)
+    for (const { osc, ratio } of voice.oscillators) {
+      osc.frequency.setTargetAtTime(f0 * ratio, now, ENGINE_GLIDE)
+    }
+    voice.filter.frequency.setTargetAtTime(380 + 2400 * revs + 900 * params.load, now, ENGINE_GLIDE)
+    voice.gain.gain.setTargetAtTime(0.05 + 0.07 * params.load + 0.03 * revs, now, 0.06)
+    voice.whistle.frequency.setTargetAtTime(1600 + 2800 * revs * params.load, now, ENGINE_GLIDE)
+    voice.whistleGain.gain.setTargetAtTime(0.012 * params.load * revs, now, 0.08)
+    voice.windGain.gain.setTargetAtTime(0.07 * params.speed * params.speed, now, 0.1)
+    voice.gravelGain.gain.setTargetAtTime(0.14 * params.gravel, now, 0.08)
+    const squeal = params.speed > 0.08 ? params.slip : 0
+    voice.squeal.frequency.setTargetAtTime(1250 + 350 * squeal, now, ENGINE_GLIDE)
+    voice.squealGain.gain.setTargetAtTime(0.03 * squeal, now, 0.05)
+    voice.squealNoiseGain.gain.setTargetAtTime(0.05 * squeal, now, 0.05)
+  }
+
+  /** Fade the engine out and release its nodes. */
+  engineStop(): void {
+    const voice = this.engine
+    if (!voice || !this.context) return
+    const now = this.context.currentTime
+    for (const gain of [
+      voice.gain,
+      voice.whistleGain,
+      voice.windGain,
+      voice.gravelGain,
+      voice.squealGain,
+      voice.squealNoiseGain,
+    ]) {
+      gain.gain.cancelScheduledValues(now)
+      gain.gain.setTargetAtTime(0, now, 0.12)
+    }
+    voice.sources.forEach((source) => source.stop(now + 0.6))
+    this.engine = null
+  }
+
+  /** Dull thud for the arena wall. */
+  impact(): void {
+    const r = this.ready()
+    if (!r) return
+    this.noiseBurst(r, 240, 0.8, 0.5, 0.18)
+    const thump = r.ctx.createOscillator()
+    const thumpGain = r.ctx.createGain()
+    thump.type = 'sine'
+    thump.frequency.setValueAtTime(110, r.now)
+    thump.frequency.exponentialRampToValueAtTime(38, r.now + 0.25)
+    thumpGain.gain.setValueAtTime(0.5, r.now)
+    thumpGain.gain.exponentialRampToValueAtTime(0.0001, r.now + 0.3)
+    thump.connect(thumpGain).connect(r.out)
+    thump.start(r.now)
+    thump.stop(r.now + 0.32)
+  }
+
+  private createEngine(r: Ready): EngineVoice {
+    const { ctx, out, now } = r
+    const sources: AudioScheduledSourceNode[] = []
+
+    // Engine: a stack of oscillators into a soft clip and a low-pass that opens with the revs.
+    const shaper = ctx.createWaveShaper()
+    shaper.curve = softClipCurve()
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.Q.value = 1.4
+    filter.frequency.value = 500
+    const gain = ctx.createGain()
+    gain.gain.value = 0
+    shaper.connect(filter).connect(gain).connect(out)
+    const oscillators = [
+      { ratio: 1, level: 0.55, type: 'sawtooth' as const },
+      { ratio: 0.5, level: 0.35, type: 'sawtooth' as const },
+      { ratio: 1.008, level: 0.3, type: 'sawtooth' as const },
+      { ratio: 2, level: 0.12, type: 'square' as const },
+    ].map(({ ratio, level, type }) => {
+      const osc = ctx.createOscillator()
+      osc.type = type
+      osc.frequency.value = ENGINE_F0[0] * ratio
+      const oscGain = ctx.createGain()
+      oscGain.gain.value = level
+      osc.connect(oscGain).connect(shaper)
+      osc.start(now)
+      sources.push(osc)
+      return { osc, ratio }
+    })
+
+    // Turbo whistle.
+    const whistle = ctx.createOscillator()
+    whistle.type = 'sine'
+    whistle.frequency.value = 1600
+    const whistleGain = ctx.createGain()
+    whistleGain.gain.value = 0
+    whistle.connect(whistleGain).connect(out)
+    whistle.start(now)
+    sources.push(whistle)
+
+    // Wind and run-off rumble are both shaped from the shared noise loop.
+    const noise = (filterType: BiquadFilterType, frequency: number, q: number) => {
+      const source = ctx.createBufferSource()
+      source.buffer = this.noiseBuffer
+      source.loop = true
+      const noiseFilter = ctx.createBiquadFilter()
+      noiseFilter.type = filterType
+      noiseFilter.frequency.value = frequency
+      noiseFilter.Q.value = q
+      const noiseGain = ctx.createGain()
+      noiseGain.gain.value = 0
+      source.connect(noiseFilter).connect(noiseGain).connect(out)
+      source.start(now)
+      sources.push(source)
+      return noiseGain
+    }
+    const windGain = noise('bandpass', 900, 0.6)
+    const gravelGain = noise('lowpass', 160, 0.9)
+    const squealNoiseGain = noise('bandpass', 1500, 14)
+
+    // Tyre scrub: a wavering tone under the narrow noise band above.
+    const squeal = ctx.createOscillator()
+    squeal.type = 'sine'
+    squeal.frequency.value = 1250
+    const vibrato = ctx.createOscillator()
+    vibrato.frequency.value = 11
+    const vibratoGain = ctx.createGain()
+    vibratoGain.gain.value = 40
+    vibrato.connect(vibratoGain).connect(squeal.detune)
+    const squealGain = ctx.createGain()
+    squealGain.gain.value = 0
+    squeal.connect(squealGain).connect(out)
+    squeal.start(now)
+    vibrato.start(now)
+    sources.push(squeal, vibrato)
+
+    const voice: EngineVoice = {
+      oscillators,
+      filter,
+      gain,
+      whistle,
+      whistleGain,
+      windGain,
+      gravelGain,
+      squeal,
+      squealGain,
+      squealNoiseGain,
+      sources,
+    }
+    this.engine = voice
+    return voice
   }
 
   private noiseBurst(r: Ready, frequency: number, q: number, level: number, length: number) {

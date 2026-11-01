@@ -1,7 +1,8 @@
 import { useFrame } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Group, MeshStandardMaterial } from 'three'
-import { damp } from '../lib/math'
+import { synth } from '../audio/synth'
+import { clamp01, damp } from '../lib/math'
 import { getPartModel } from '../parts/model'
 import { PART_BY_ID, PARTS } from '../parts/registry'
 import type { PartId } from '../parts/types'
@@ -9,7 +10,7 @@ import { getLiveryUniforms } from '../scene/liveryTextures'
 import { createFinishMaterial, FINISHES } from '../scene/materials'
 import { applyMaterialize, createMaterializeUniforms } from '../shaders/materialize'
 import { useDriveInput } from './input'
-import { stepCar } from './physics'
+import { MAX_SPEED, stepCar } from './physics'
 import { car, updateLaps } from './session'
 import { locateOnTrack, type TrackFix } from './track'
 
@@ -87,11 +88,23 @@ export function DriveCar() {
     rainLight.current = materials.find((material) => material.emissive.getHex() !== 0) ?? null
   }, [])
 
+  // The engine note lives as long as the car is on the track.
+  useEffect(() => () => synth.engineStop(), [])
+
   useFrame((_, dt) => {
     const step = Math.min(dt, MAX_STEP)
     locateOnTrack(car.x, car.z, fix.current)
     stepCar(car, input.current, step, fix.current)
     updateLaps(fix.current, performance.now())
+    const speed01 = clamp01(Math.abs(car.speed) / MAX_SPEED)
+    synth.engineUpdate({
+      revs: car.revs,
+      load: car.throttle,
+      speed: speed01,
+      slip: car.slip,
+      gravel: car.offTrack ? clamp01(Math.abs(car.speed) / 8) : 0,
+    })
+    if (car.wallHit) synth.impact()
 
     const node = root.current
     if (!node) return
