@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { PerspectiveCamera, Vector3 } from 'three'
-import { clamp01, damp, dampAngle, lerp } from '../lib/math'
+import { clamp, clamp01, damp, dampAngle, lerp } from '../lib/math'
 import { MAX_SPEED } from './physics'
 import { car } from './session'
 
@@ -16,6 +16,11 @@ const TRACK_FAR = 900
 /** Vertical judder on the run-off, scaled by speed. */
 const RUNOFF_SHAKE = 0.06
 
+/** Portrait screens lose horizontal field of view, so the camera sits further back and higher. */
+function fitScale(aspect: number): number {
+  return aspect < 1.1 ? clamp(1.1 / aspect, 1, 1.7) : 1
+}
+
 /**
  * Third-person chase camera. Its heading trails the car's so the car swings across the frame in
  * corners, and it snaps into place on mount so no frame of the workshop angle is ever seen.
@@ -23,6 +28,7 @@ const RUNOFF_SHAKE = 0.06
  */
 export function ChaseCamera() {
   const camera = useThree((state) => state.camera)
+  const aspect = useThree((state) => state.size.width / state.size.height)
   const heading = useRef(car.heading)
   const target = useRef(new Vector3())
   const desired = useRef(new Vector3())
@@ -48,8 +54,9 @@ export function ChaseCamera() {
     snapped.current = true
 
     heading.current = snap ? car.heading : dampAngle(heading.current, car.heading, 3.2, dt)
-    const back = lerp(BACK[0], BACK[1], speed01)
-    const height = lerp(HEIGHT[0], HEIGHT[1], speed01)
+    const fit = fitScale(aspect)
+    const back = lerp(BACK[0], BACK[1], speed01) * fit
+    const height = lerp(HEIGHT[0], HEIGHT[1], speed01) * (0.8 + 0.2 * fit)
     desired.current.set(
       car.x - Math.sin(heading.current) * back,
       height,

@@ -38,6 +38,16 @@ export const laps: LapState = {
   progress: 0,
 }
 
+/** m:ss.mmm, or dashes before a time exists. */
+export function formatLap(ms: number | null): string {
+  if (ms === null) return '--:--.---'
+  const total = Math.max(0, Math.round(ms))
+  const minutes = Math.floor(total / 60000)
+  const seconds = Math.floor((total % 60000) / 1000)
+  const millis = total % 1000
+  return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`
+}
+
 /** Back to the grid with the clock stopped; the best lap survives for the session. */
 export function resetCar(): void {
   placeCar(car, GRID_POSE)

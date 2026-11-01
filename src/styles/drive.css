@@ -4,9 +4,9 @@
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  padding: 18px 22px 16px;
-  gap: 12px;
+  grid-template-rows: auto 1fr auto auto;
+  padding: 18px 22px 14px;
+  gap: 10px;
 }
 
 .drive-top {
@@ -25,6 +25,55 @@
   pointer-events: auto;
 }
 
+/* Centre band: track-limits warning and the first-drive hint. */
+
+.drive-middle {
+  position: relative;
+}
+
+.drive-flash,
+.drive-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.drive-flash {
+  top: 10%;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #ffd3dc;
+  border: 1px solid var(--danger);
+  background: rgba(5, 10, 18, 0.7);
+  box-shadow: 0 0 18px rgba(255, 77, 109, 0.35);
+}
+
+.drive-hint {
+  top: 24%;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.drive-hint kbd {
+  font: inherit;
+  padding: 1px 5px;
+  color: var(--cyan);
+  border: 1px solid rgba(56, 231, 255, 0.35);
+  border-radius: 2px;
+}
+
+.drive-flash.show,
+.drive-hint.show {
+  opacity: 1;
+}
+
+/* Bottom row: minimap, dashboard, lap times. */
+
 .drive-bottom {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -32,10 +81,240 @@
   gap: 16px;
 }
 
-.drive-bottom .legend {
-  max-width: 340px;
+.drive-minimap {
+  justify-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 8px;
 }
 
-.drive-bottom .legend kbd + kbd {
+.minimap {
+  display: block;
+}
+
+.minimap-road {
+  fill: none;
+  stroke: rgba(56, 231, 255, 0.16);
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+
+.minimap-line {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.minimap-start {
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+.minimap-car {
+  fill: #ffffff;
+  stroke: rgba(56, 231, 255, 0.9);
+  stroke-width: 3;
+  paint-order: stroke;
+  filter: drop-shadow(0 0 4px var(--cyan));
+}
+
+.drive-dash {
+  min-width: 360px;
+  padding: 12px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dash-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: end;
+  gap: 24px;
+}
+
+.dash-gear {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-gear-value {
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--cyan);
+  text-shadow: 0 0 14px rgba(56, 231, 255, 0.55);
+  min-width: 1ch;
+}
+
+.dash-speed {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dash-speed-value {
+  font-size: 54px;
+  line-height: 1;
+  font-weight: 500;
+  color: #ffffff;
+  text-shadow: 0 0 16px rgba(56, 231, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
+}
+
+.dash-speed-unit {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.rev-bar {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 3px;
+  height: 10px;
+}
+
+.rev-bar i {
+  display: block;
+  background: rgba(56, 231, 255, 0.12);
+  border: 1px solid rgba(56, 231, 255, 0.2);
+  transition: background 0.05s linear;
+}
+
+.rev-bar i.lit {
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.rev-bar i.red {
+  border-color: rgba(255, 77, 109, 0.35);
+}
+
+.rev-bar i.red.lit {
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
+
+.drive-laps {
+  justify-self: end;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.lap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.lap-time {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lap-time.current {
+  font-size: 20px;
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(56, 231, 255, 0.45);
+}
+
+.lap-time.best {
+  color: var(--cyan);
+}
+
+/* Its own class on purpose: the workshop's .legend takes a grid area at tablet widths. */
+.drive-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+}
+
+.drive-legend kbd {
+  font: inherit;
+  color: var(--cyan);
+}
+
+.drive-legend kbd + kbd {
   margin-left: 3px;
+}
+
+/* Tablets: the three panels stay on one row so nothing sits over the car; they just get tighter. */
+@media (max-width: 1100px) {
+  .drive-dash {
+    min-width: 300px;
+    padding: 10px 14px 12px;
+  }
+  .drive-laps {
+    min-width: 190px;
+  }
+  .dash-speed-value {
+    font-size: 46px;
+  }
+  .dash-gear-value {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 900px) {
+  .drive-hud {
+    padding: 12px 14px;
+  }
+  .drive-mode {
+    display: none;
+  }
+  .drive-bottom {
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+  }
+  .drive-dash {
+    min-width: 0;
+    width: 100%;
+  }
+  .dash-row {
+    gap: 14px;
+  }
+  .dash-speed-value {
+    font-size: 40px;
+  }
+  .dash-gear-value {
+    font-size: 30px;
+  }
+  .drive-minimap {
+    padding: 8px 8px 6px;
+  }
+  .minimap {
+    width: 126px;
+    height: 90px;
+  }
+  .drive-laps {
+    min-width: 0;
+    padding: 10px 10px;
+  }
+  .lap-time {
+    font-size: 13px;
+  }
+  .lap-time.current {
+    font-size: 17px;
+  }
+  .drive-legend {
+    display: none;
+  }
 }
