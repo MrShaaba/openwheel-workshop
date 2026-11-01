@@ -4,8 +4,8 @@ Build a modern open-wheel race car part by part inside a holographic workshop. P
 the build platform as glowing blue holograms. Click or drag one onto the chassis and it flies into
 place, locks in with a flash, and materialises from wireframe into solid carbon and metal. Every part
 comes with a short engineering card explaining what it does and how it connects to the rest of the
-car. Pull the finished car apart in Exploded View, let the workshop assemble it for you, and come
-back later: the build is saved in the browser.
+car. Pull the finished car apart in Exploded View, let the workshop assemble it for you, paint it in
+the workshop's paint shop, and come back later: the build and the livery are saved in the browser.
 
 ![Open-Wheel Workshop](docs/screenshot.png)
 
@@ -25,12 +25,21 @@ back later: the build is saved in the browser.
   new angle for each stage. Stop it with `Esc` or skip to the finished car.
 - **Completion moment.** When the last part locks in, shockwaves cross the floor, the platform flares,
   the engine fires up, the camera sweeps the car and the HUD types out SYSTEMS ONLINE.
+- **Paint shop.** Unlocked when the car is complete. Pick a pattern (solid, stripe, split, fade),
+  three colours, a car number and one of four original schemes. The livery is painted in car space
+  from two shared canvas masks, so every painted part updates at once and the number reads correctly
+  on the nose, the sidepods and the shark fin from either side.
 - **Save and resume.** The installed parts, build mode, sound setting and livery are stored in the
   browser and restored on the next visit. Reset build clears them after a confirmation.
+- **Works on a tablet and from the keyboard.** The HUD reflows at 1024 px and 820 px, every action
+  is a focusable control with a visible focus ring, the checklist rows install or inspect parts, the
+  objective and toasts are live regions, and reduced-motion settings are respected.
 - **Procedural everything.** No models, textures, fonts or audio files. Geometry is built from
   primitives, lathes and extrusions; every sound is synthesised with the Web Audio API.
 
 ![Exploded View](docs/exploded.png)
+
+![Paint shop](docs/paint-shop.png)
 
 ## Who it is for
 
@@ -75,20 +84,22 @@ Open <http://localhost:5173>.
 
 ## Controls
 
-| Input                   | Action                                                   |
-| ----------------------- | -------------------------------------------------------- |
-| Click a hologram        | Install that part (Guided: the highlighted one)          |
-| Drag a hologram         | Move it near its ghost outline to snap it in             |
-| Click an installed part | Inspect it and open its info card                        |
-| Space                   | Install the next part                                    |
-| E                       | Toggle Exploded View                                     |
-| 1 to 6                  | Camera presets: front, side, top, rear, cockpit, hero    |
-| R                       | Reset the camera to the hero angle                       |
-| M                       | Mute or unmute                                           |
-| Esc                     | Leave Inspect, stop Assemble All, or close a dialog      |
-| Mouse drag / wheel      | Orbit and zoom                                           |
-| Assemble all (HUD)      | Install every remaining part automatically               |
-| Reset build (HUD)       | Clear the build and its saved copy, after a confirmation |
+| Input                   | Action                                                             |
+| ----------------------- | ------------------------------------------------------------------ |
+| Click a hologram        | Install that part (Guided: the highlighted one)                    |
+| Drag a hologram         | Move it near its ghost outline to snap it in                       |
+| Click an installed part | Inspect it and open its info card                                  |
+| Space                   | Install the next part                                              |
+| E                       | Toggle Exploded View                                               |
+| L                       | Open or close the paint shop (once the car is complete)            |
+| 1 to 6                  | Camera presets: front, side, top, rear, cockpit, hero              |
+| R                       | Reset the camera to the hero angle                                 |
+| M                       | Mute or unmute                                                     |
+| Esc                     | Close the paint shop or a dialog, stop Assemble All, leave Inspect |
+| Mouse drag / wheel      | Orbit and zoom                                                     |
+| Assemble all (HUD)      | Install every remaining part automatically                         |
+| Reset build (HUD)       | Clear the build and its saved copy, after a confirmation           |
+| Checklist rows (HUD)    | Install an available part or inspect an installed one              |
 
 ## Save and resume
 
@@ -97,6 +108,15 @@ version. On load the saved list is checked against the part registry: unknown id
 parts whose dependencies are missing are dropped, and a value that cannot be parsed is discarded,
 so the app always boots to a consistent car. Storage that is blocked (private windows, quota) falls
 back to memory for the session.
+
+## Performance
+
+The scene targets 60 fps on a modern laptop. Pixel ratio adapts between 1 and 1.5 from a
+four-second rolling average; SMAA runs only below 1.5 where its three passes are worth it. Each part
+keeps one merged geometry for its hologram passes, the platform's lines are one mesh, the floor
+reflection renders at 512 px, and dust thins out as the camera closes in. Measured in Chromium at
+1440 x 900 with the pixel ratio pinned at 1.5, every state (inventory ring, full car, exploded,
+paint shop, assembling) holds 60 fps at around 165 to 240 draw calls.
 
 ## Project layout
 
@@ -107,7 +127,7 @@ src/
   shaders/   hologram and materialize GLSL
   state/     zustand store, selectors, persistence adapter
   audio/     Web Audio synth
-  ui/        HUD, inventory, info card, mode controls, dialogs, loading screen
+  ui/        HUD, checklist, info card, paint shop, mode controls, dialogs, loading screen
 ```
 
 Part metadata has one source of truth in `src/parts/registry.ts`. Adding a part takes one entry
@@ -115,10 +135,10 @@ there, one geometry function in `src/parts/geometry/` and one card in `src/parts
 
 ## Roadmap
 
-Phases 1 to 4 are built: workshop, Guided and Free Build, the materialise shader, sound, info cards,
-Inspect, Exploded View, Assemble All, the completion sequence and save and resume. See
-[ROADMAP.md](ROADMAP.md) for the livery customiser, the polish and performance pass, and the
-stretch goals.
+Phases 1 to 5 are built: workshop, Guided and Free Build, the materialise shader, sound, info cards,
+Inspect, Exploded View, Assemble All, the completion sequence, save and resume, the paint shop, the
+tablet layout, the accessibility and performance passes and a round of visual polish. See
+[ROADMAP.md](ROADMAP.md) for the stretch goals.
 
 ## License
 
