@@ -6,16 +6,22 @@ import {
   BufferGeometry,
   Color,
   type ShaderMaterial,
+  type Vector3,
 } from 'three'
-import { createRng } from '../lib/math'
+import { clamp, createRng, damp } from '../lib/math'
 
 const COUNT = 1400
 const EXTENT = 26
 const HEIGHT = 8
+/** Camera distance (to the orbit target) at which the dust is thinnest and at which it is full. */
+const NEAR_DISTANCE = 2
+const FAR_DISTANCE = 9
+const NEAR_DENSITY = 0.22
 
 const vertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uPixelRatio;
+  uniform float uDensity;
   attribute float aSeed;
   attribute float aSize;
   varying float vAlpha;
@@ -28,10 +34,12 @@ const vertexShader = /* glsl */ `
     float fadeIn = smoothstep(0.0, 0.9, p.y);
     float fadeOut = 1.0 - smoothstep(${(HEIGHT * 0.7).toFixed(1)}, ${HEIGHT.toFixed(1)}, p.y);
     float twinkle = 0.65 + 0.35 * sin(uTime * (1.2 + aSeed * 2.0) + aSeed * 40.0);
-    vAlpha = fadeIn * fadeOut * twinkle * (0.3 + 0.7 * fract(aSeed * 7.31));
+    // Motes with a seed above the density are hidden, so close-ups stay clear of clutter.
+    float shown = step(aSeed, uDensity);
+    vAlpha = fadeIn * fadeOut * twinkle * (0.3 + 0.7 * fract(aSeed * 7.31)) * shown;
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     // Capped so motes passing the camera do not become screen-filling overdraw.
-    gl_PointSize = min(aSize * (14.0 / max(-mv.z, 0.5)), 22.0) * uPixelRatio;
+    gl_PointSize = min(aSize * (14.0 / max(-mv.z, 0.5)), 22.0) * uPixelRatio * shown;
     gl_Position = projectionMatrix * mv;
   }
 `
@@ -68,6 +76,7 @@ function buildGeometry(): BufferGeometry {
 /** Slowly rising, drifting motes that catch the light. */
 export function Dust() {
   const dpr = useThree((state) => state.viewport.dpr)
+  const camera = useThree((state) => state.camera)
   const material = useRef<ShaderMaterial>(null)
   const geometry = useMemo(() => buildGeometry(), [])
   useEffect(() => () => geometry.dispose(), [geometry])
@@ -75,15 +84,24 @@ export function Dust() {
     () => ({
       uTime: { value: 0 },
       uPixelRatio: { value: 1 },
+      uDensity: { value: 1 },
       uColor: { value: new Color('#8fdcff').multiplyScalar(0.9) },
     }),
     [],
   )
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, controls }, dt) => {
     if (!material.current) return
-    material.current.uniforms.uTime.value = clock.elapsedTime
-    material.current.uniforms.uPixelRatio.value = dpr
+    const { uniforms } = material.current
+    uniforms.uTime.value = clock.elapsedTime
+    uniforms.uPixelRatio.value = dpr
+    // Thin out as the camera closes in on the car, fill back in from a distance.
+    const target = (controls as { target?: Vector3 } | null)?.target
+    const distance = target ? camera.position.distanceTo(target) : FAR_DISTANCE
+    const wanted =
+      NEAR_DENSITY +
+      (1 - NEAR_DENSITY) * clamp((distance - NEAR_DISTANCE) / (FAR_DISTANCE - NEAR_DISTANCE), 0, 1)
+    uniforms.uDensity.value = damp(uniforms.uDensity.value as number, wanted, 2.5, dt)
   })
 
   return (

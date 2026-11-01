@@ -126,7 +126,8 @@ export function applyMaterialize(
       .replace(
         '#include <clipping_planes_fragment>',
         `#include <clipping_planes_fragment>
-        float materializeFront = mix(uBounds.x - 0.06, uBounds.y + 0.06, uProgress);
+        // The margin exceeds the 0.07 jitter below, so nothing is cut once the wipe has finished.
+        float materializeFront = mix(uBounds.x - 0.08, uBounds.y + 0.09, uProgress);
         float materializeHeight = vMaterializePos.y + hash21(floor(vMaterializePos.xz * 38.0)) * 0.07;
         if (materializeHeight > materializeFront) discard;
         float materializeEdge = (1.0 - smoothstep(0.0, 0.1, materializeFront - materializeHeight)) * (1.0 - step(0.999, uProgress)) * uEdge;`,

@@ -3,16 +3,43 @@ import { box, cylinder, loftStations, merge, tube, withMirror } from './helpers'
 
 const ALONG_Z: [number, number, number] = [Math.PI / 2, 0, 0]
 
-/** 1.6 litre V6: block, sump, two cam covers in a V, carbon intake plenum on top. */
+/**
+ * 1.6 litre V6: block, sump, two cam covers in a V, carbon intake plenum with six trumpets, a bell
+ * housing at the back and the exhaust collectors running down each bank.
+ */
 export const engine: GeometryFactory = () => {
   const block = box(0.46, 0.34, 0.72, [0, 0.4, -0.75])
   const sump = box(0.3, 0.08, 0.6, [0, 0.21, -0.75])
+  const bellHousing = cylinder(0.2, 0.2, 0.06, 32, [0, 0.42, -1.1], ALONG_Z)
   const camLeft = box(0.16, 0.16, 0.6, [-0.14, 0.62, -0.75], [0, 0, 0.6])
   const camRight = box(0.16, 0.16, 0.6, [0.14, 0.62, -0.75], [0, 0, -0.6])
+  const trumpets = merge(
+    [-0.6, -0.75, -0.9].flatMap((z) => [
+      cylinder(0.026, 0.034, 0.05, 14, [0.07, 0.815, z]),
+      cylinder(0.026, 0.034, 0.05, 14, [-0.07, 0.815, z]),
+    ]),
+  )
+  const collectors = withMirror(
+    merge([
+      tube(
+        [
+          [0.24, 0.52, -0.56],
+          [0.3, 0.44, -0.66],
+          [0.3, 0.4, -0.86],
+          [0.24, 0.5, -1.0],
+        ],
+        0.022,
+        20,
+        10,
+      ),
+      cylinder(0.02, 0.02, 0.07, 10, [0.26, 0.5, -0.7], [0, 0, Math.PI / 2]),
+      cylinder(0.02, 0.02, 0.07, 10, [0.26, 0.5, -0.85], [0, 0, Math.PI / 2]),
+    ]),
+  )
   const plenum = box(0.26, 0.1, 0.56, [0, 0.74, -0.72])
   return [
-    { geometry: merge([block, sump]), finish: 'darkmetal' },
-    { geometry: merge([camLeft, camRight]), finish: 'metal' },
+    { geometry: merge([block, sump, bellHousing]), finish: 'darkmetal' },
+    { geometry: merge([camLeft, camRight, trumpets, collectors]), finish: 'metal' },
     { geometry: plenum, finish: 'carbon' },
   ]
 }

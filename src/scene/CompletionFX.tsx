@@ -55,7 +55,7 @@ export function CompletionFX() {
 
     if (light.current) {
       const k = clamp01(t / LIGHT_SECONDS)
-      light.current.intensity = 420 * Math.sin(Math.PI * k)
+      light.current.intensity = 320 * Math.sin(Math.PI * k)
     }
 
     completionGlow.value =

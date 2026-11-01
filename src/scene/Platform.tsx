@@ -1,7 +1,9 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import {
+  AdditiveBlending,
   BoxGeometry,
+  Color,
   Float32BufferAttribute,
   Matrix4,
   PlaneGeometry,
@@ -9,17 +11,53 @@ import {
   type BufferGeometry,
   type Group,
   type MeshBasicMaterial,
+  type ShaderMaterial,
 } from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { damp, TAU } from '../lib/math'
 import { prefersReducedMotion } from '../lib/motion'
 import { useWorkshop } from '../state/store'
-import { HOLO_COLOR, HOLO_COLOR_SOFT, PLATFORM_HEIGHT, PLATFORM_RADIUS } from './constants'
+import {
+  HOLO_COLOR,
+  HOLO_COLOR_SOFT,
+  HOLO_HEX,
+  PLATFORM_HEIGHT,
+  PLATFORM_RADIUS,
+} from './constants'
 import { completionGlow } from './effectsBus'
 import { idleSeconds } from './interaction'
 
 const IDLE_DELAY_SECONDS = 3
 const IDLE_SPEED = 0.09 // radians per second
+
+/** How far the under-glow spills onto the floor beyond the platform edge. */
+const GLOW_REACH = 2.1
+
+const glowVertex = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+/** Soft radial spill: bright at the platform edge, gone by GLOW_REACH, breathing slowly. */
+const glowFragment = /* glsl */ `
+  uniform float uTime;
+  uniform float uGlow;
+  uniform float uInner;
+  uniform float uOuter;
+  uniform vec3 uColor;
+  varying vec2 vUv;
+  void main() {
+    float radius = length(vUv - 0.5) * 2.0 * uOuter;
+    float t = clamp((radius - uInner) / (uOuter - uInner), 0.0, 1.0);
+    float falloff = pow(1.0 - t, 2.6);
+    float breathe = 0.9 + 0.1 * sin(uTime * 0.8);
+    float alpha = falloff * (0.26 * breathe + 1.1 * uGlow);
+    gl_FragColor = vec4(uColor * alpha, alpha);
+  }
+`
 
 /**
  * Every static line on the platform top (tick marks, guide rings, centre reticle) in one geometry
@@ -68,11 +106,21 @@ export function Platform({ children }: PlatformProps) {
   const speed = useRef(0)
   const overlay = useMemo(() => buildOverlay(), [])
   const ringMaterial = useRef<MeshBasicMaterial>(null)
-  const glowMaterial = useRef<MeshBasicMaterial>(null)
+  const glowMaterial = useRef<ShaderMaterial>(null)
+  const glowUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uGlow: { value: 0 },
+      uInner: { value: PLATFORM_RADIUS - 0.2 },
+      uOuter: { value: PLATFORM_RADIUS + GLOW_REACH },
+      uColor: { value: new Color(HOLO_HEX).multiplyScalar(1.1) },
+    }),
+    [],
+  )
 
   useEffect(() => () => overlay.dispose(), [overlay])
 
-  useFrame((_, dt) => {
+  useFrame(({ clock }, dt) => {
     const state = useWorkshop.getState()
     const idle =
       idleSeconds() > IDLE_DELAY_SECONDS &&
@@ -89,7 +137,11 @@ export function Platform({ children }: PlatformProps) {
     if (ringMaterial.current) {
       ringMaterial.current.color.copy(HOLO_COLOR).multiplyScalar(1 + 1.8 * glow)
     }
-    if (glowMaterial.current) glowMaterial.current.opacity = 0.07 + 0.3 * glow
+    // Write through the material: the fiber gives the ShaderMaterial its own copy of `uniforms`.
+    if (glowMaterial.current) {
+      glowMaterial.current.uniforms.uTime.value = clock.elapsedTime
+      glowMaterial.current.uniforms.uGlow.value = glow
+    }
   })
 
   const top = PLATFORM_HEIGHT
@@ -120,14 +172,16 @@ export function Platform({ children }: PlatformProps) {
       </mesh>
 
       {/* Soft under-glow spilling onto the floor */}
-      <mesh rotation-x={-Math.PI / 2} position-y={0.0005}>
-        <ringGeometry args={[PLATFORM_RADIUS + 0.08, PLATFORM_RADIUS + 1.1, 96]} />
-        <meshBasicMaterial
+      <mesh rotation-x={-Math.PI / 2} position-y={0.0008}>
+        <ringGeometry args={[PLATFORM_RADIUS - 0.2, PLATFORM_RADIUS + GLOW_REACH, 96]} />
+        <shaderMaterial
           ref={glowMaterial}
-          color={HOLO_COLOR_SOFT}
-          toneMapped={false}
+          vertexShader={glowVertex}
+          fragmentShader={glowFragment}
+          uniforms={glowUniforms}
           transparent
-          opacity={0.07}
+          depthWrite={false}
+          blending={AdditiveBlending}
         />
       </mesh>
 

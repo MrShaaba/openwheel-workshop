@@ -1,5 +1,14 @@
 import type { GeometryFactory } from '../types'
-import { box, flatShape, frameShape, loftStations, merge, tube, withMirror } from './helpers'
+import {
+  box,
+  flatShape,
+  frameShape,
+  loftStations,
+  merge,
+  plateYZ,
+  tube,
+  withMirror,
+} from './helpers'
 
 /** Survival cell: the carbon tub the driver sits in, from rear bulkhead to front bulkhead. */
 export const monocoque: GeometryFactory = () => {
@@ -111,7 +120,19 @@ export const noseCone: GeometryFactory = () => {
     { z: 2.65, hw: 0.075, y0: 0.2, y1: 0.29, n: 2 },
     { z: 2.9, hw: 0.04, y0: 0.22, y1: 0.26, n: 2 },
   ])
-  const pylons = withMirror(box(0.03, 0.14, 0.22, [0.1, 0.17, 2.62]))
+  // Swept vanes dropping from the nose underside to the wing, thin in the airflow.
+  const pylons = withMirror(
+    plateYZ(
+      [
+        [2.42, 0.21],
+        [2.78, 0.22],
+        [2.86, 0.13],
+        [2.6, 0.1],
+      ],
+      0.022,
+      0.1,
+    ),
+  )
   return [
     { geometry: body, finish: 'paint' },
     { geometry: pylons, finish: 'carbon' },

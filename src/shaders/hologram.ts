@@ -40,7 +40,7 @@ const fragmentShader = /* glsl */ `
   ${HASH_GLSL}
   void main() {
     // Wipe front rises through the part as uProgress goes 0 -> 1; the solid pass owns everything below it.
-    float front = mix(uBounds.x - 0.06, uBounds.y + 0.06, uProgress);
+    float front = mix(uBounds.x - 0.08, uBounds.y + 0.09, uProgress);
     float ragged = hash21(floor(vLocalPos.xz * 38.0)) * 0.07;
     float height = vLocalPos.y + ragged;
     if (height < front) discard;

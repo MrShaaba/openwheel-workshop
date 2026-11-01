@@ -1,5 +1,15 @@
 import type { GeometryFactory, PartPiece, Vec3 } from '../types'
-import { box, cylinder, extrude, frameShape, merge, place, rod, withMirror } from './helpers'
+import {
+  box,
+  cylinder,
+  extrude,
+  frameShape,
+  loftStations,
+  merge,
+  place,
+  rod,
+  withMirror,
+} from './helpers'
 
 const WHEEL_POSITION: Vec3 = [0, 0.78, 1.0]
 const WHEEL_TILT: Vec3 = [-0.35, 0, 0]
@@ -38,10 +48,15 @@ export const steeringWheel: GeometryFactory = () => {
   }))
 }
 
-/** Wing mirrors on stalks beside the cockpit. */
+/** Wing mirrors on stalks beside the cockpit: a teardrop pod with the glass in its back face. */
 export const mirrors: GeometryFactory = () => {
-  const housing = box(0.15, 0.08, 0.07, [0.56, 0.8, 0.95])
-  const glass = box(0.13, 0.06, 0.006, [0.56, 0.8, 0.913])
+  const housing = loftStations([
+    { z: 1.0, cx: 0.56, hw: 0.035, y0: 0.785, y1: 0.815, n: 2 },
+    { z: 0.975, cx: 0.56, hw: 0.065, y0: 0.766, y1: 0.834, n: 2.4 },
+    { z: 0.94, cx: 0.56, hw: 0.075, y0: 0.76, y1: 0.84, n: 2.6 },
+    { z: 0.918, cx: 0.56, hw: 0.07, y0: 0.763, y1: 0.837, n: 2.6 },
+  ])
+  const glass = box(0.12, 0.058, 0.006, [0.56, 0.8, 0.916])
   const stalk = rod([0.36, 0.68, 0.98], [0.52, 0.78, 0.96], 0.01)
   return [
     { geometry: withMirror(housing), finish: 'paint' },
