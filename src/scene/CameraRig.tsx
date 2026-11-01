@@ -19,6 +19,22 @@ const SWEEP_SPEED = 0.22 // radians per second
 const SWEEP_START_ANGLE = -0.7
 const UP = new Vector3(0, 1, 0)
 
+/**
+ * The poses are framed for landscape screens. A portrait viewport loses horizontal field of view,
+ * so the camera backs away from the target in proportion to how narrow the screen is.
+ */
+function fitScale(aspect: number): number {
+  return aspect < 1.1 ? clamp(1.1 / aspect, 1, 1.9) : 1
+}
+
+function fitPose(pose: CameraPose, aspect: number): CameraPose {
+  const scale = fitScale(aspect)
+  if (scale === 1) return pose
+  const target = toVector3(pose.target)
+  const position = toVector3(pose.position).sub(target).multiplyScalar(scale).add(target)
+  return { position: [position.x, position.y, position.z], target: pose.target }
+}
+
 interface Flight {
   fromPosition: Vector3
   fromTarget: Vector3
@@ -79,16 +95,31 @@ export function CameraRig() {
   const sweepPending = useRef(false)
   const camera = useThree((state) => state.camera)
   const scene = useThree((state) => state.scene)
+  const aspect = useThree((state) => state.size.width / state.size.height)
+  const aspectRef = useRef(aspect)
   const request = useWorkshop((state) => state.cameraRequest)
 
   useEffect(() => {
+    aspectRef.current = aspect
+  }, [aspect])
+
+  // A portrait screen at boot starts further back than the landscape hero pose.
+  useEffect(() => {
+    const orbit = controls.current
+    if (!orbit || fitScale(aspectRef.current) === 1) return
+    camera.position.copy(toVector3(fitPose(HERO_POSE, aspectRef.current).position))
+    orbit.update()
+  }, [camera])
+
+  useEffect(() => {
     if (!request || !controls.current) return
-    const pose: CameraPose =
+    const raw: CameraPose =
       request.kind === 'preset'
         ? CAMERA_POSES[request.preset]
         : request.kind === 'focus'
           ? focusPose(request.part, scene, camera, controls.current.target)
           : sweepStartPose()
+    const pose = fitPose(raw, aspectRef.current)
     flight.current = {
       fromPosition: camera.position.clone(),
       fromTarget: controls.current.target.clone(),
