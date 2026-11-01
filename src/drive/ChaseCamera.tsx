@@ -6,13 +6,15 @@ import { MAX_SPEED } from './physics'
 import { car } from './session'
 
 /** Camera distance behind the car and height above the road, at rest and at top speed. */
-const BACK = [7.4, 10.8] as const
-const HEIGHT = [2.5, 3.2] as const
+const BACK = [6.6, 8.4] as const
+const HEIGHT = [2.2, 2.7] as const
 /** The field of view widens with speed, which reads as speed more than the ground does. */
-const FOV = [44, 58] as const
-const LOOK_AHEAD = 3.4
-const LOOK_HEIGHT = 0.7
+const FOV = [46, 62] as const
+const LOOK_AHEAD = 4
+const LOOK_HEIGHT = 0.6
 const TRACK_FAR = 900
+/** Vertical judder on the run-off, scaled by speed. */
+const RUNOFF_SHAKE = 0.06
 
 /**
  * Third-person chase camera. Its heading trails the car's so the car swings across the frame in
@@ -70,6 +72,9 @@ export function ChaseCamera() {
       target.current.x = damp(target.current.x, look.current.x, 12, dt)
       target.current.y = damp(target.current.y, look.current.y, 12, dt)
       target.current.z = damp(target.current.z, look.current.z, 12, dt)
+    }
+    if (car.offTrack && speed01 > 0.05) {
+      camera.position.y += (Math.random() - 0.5) * RUNOFF_SHAKE * (0.3 + speed01)
     }
     camera.lookAt(target.current)
 

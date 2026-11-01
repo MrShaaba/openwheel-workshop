@@ -1,13 +1,22 @@
 import { useFrame } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Group, MeshStandardMaterial } from 'three'
+import { damp } from '../lib/math'
 import { getPartModel } from '../parts/model'
 import { PART_BY_ID, PARTS } from '../parts/registry'
 import type { PartId } from '../parts/types'
 import { getLiveryUniforms } from '../scene/liveryTextures'
-import { createFinishMaterial } from '../scene/materials'
+import { createFinishMaterial, FINISHES } from '../scene/materials'
 import { applyMaterialize, createMaterializeUniforms } from '../shaders/materialize'
-import { car } from './session'
+import { useDriveInput } from './input'
+import { stepCar } from './physics'
+import { car, updateLaps } from './session'
+import { locateOnTrack, type TrackFix } from './track'
+
+/** Physics never integrates more than this per frame, so a paused tab does not launch the car. */
+const MAX_STEP = 1 / 30
+const RAIN_LIGHT_IDLE = FINISHES.emissive.emissiveIntensity ?? 3
+const RAIN_LIGHT_BRAKING = 9
 
 const WHEEL_IDS = ['wheel-fl', 'wheel-fr', 'wheel-rl', 'wheel-rr'] as const satisfies PartId[]
 const FRONT_WHEELS = new Set<PartId>(['wheel-fl', 'wheel-fr'])
@@ -40,11 +49,14 @@ interface PartMeshesProps {
   id: PartId
   /** Wheels sit inside steer and spin groups that already carry the part's position. */
   atOrigin?: boolean
+  /** Hands the live materials to the parent, for the brake light. */
+  onMaterials?: (materials: MeshStandardMaterial[]) => void
 }
 
-function PartMeshes({ id, atOrigin = false }: PartMeshesProps) {
+function PartMeshes({ id, atOrigin = false, onMaterials }: PartMeshesProps) {
   const model = getPartModel(id)
   const materials = usePartMaterials(id)
+  useEffect(() => onMaterials?.(materials), [materials, onMaterials])
   const { position, rotation = [0, 0, 0] } = PART_BY_ID[id].transform
   return (
     <group
@@ -59,18 +71,38 @@ function PartMeshes({ id, atOrigin = false }: PartMeshesProps) {
 }
 
 /**
- * The finished car on the track: every part solid and painted, wheels that steer and spin, and a
- * body that rolls and pitches with the forces on it. The pose comes from the shared car state.
+ * The finished car on the track: every part solid and painted, wheels that steer and spin, a body
+ * that rolls and pitches with the forces on it, and a rain light that brightens under braking.
+ * The car's own frame loop steps the physics and the lap timer into the shared session state.
  */
 export function DriveCar() {
   const root = useRef<Group>(null)
   const chassis = useRef<Group>(null)
   const steerGroups = useRef<(Group | null)[]>([])
   const spinGroups = useRef<(Group | null)[]>([])
+  const rainLight = useRef<MeshStandardMaterial | null>(null)
+  const fix = useRef<TrackFix>({ index: 0, progress: 0, lateral: 0 })
+  const input = useDriveInput()
+  const takeRainLight = useCallback((materials: MeshStandardMaterial[]) => {
+    rainLight.current = materials.find((material) => material.emissive.getHex() !== 0) ?? null
+  }, [])
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    const step = Math.min(dt, MAX_STEP)
+    locateOnTrack(car.x, car.z, fix.current)
+    stepCar(car, input.current, step, fix.current)
+    updateLaps(fix.current, performance.now())
+
     const node = root.current
     if (!node) return
+    if (rainLight.current) {
+      rainLight.current.emissiveIntensity = damp(
+        rainLight.current.emissiveIntensity,
+        car.brake > 0 ? RAIN_LIGHT_BRAKING : RAIN_LIGHT_IDLE,
+        14,
+        dt,
+      )
+    }
     node.position.set(car.x, 0, car.z)
     node.rotation.y = car.heading
     if (chassis.current) chassis.current.rotation.set(car.pitch, 0, car.roll)
@@ -86,7 +118,11 @@ export function DriveCar() {
     <group ref={root} name="drive-car">
       <group ref={chassis}>
         {BODY_PARTS.map((part) => (
-          <PartMeshes key={part.id} id={part.id} />
+          <PartMeshes
+            key={part.id}
+            id={part.id}
+            onMaterials={part.id === 'rain-light' ? takeRainLight : undefined}
+          />
         ))}
         {/* A soft key light rides with the car, so it is lit the same anywhere on the circuit. */}
         <pointLight
