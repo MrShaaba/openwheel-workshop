@@ -1,6 +1,6 @@
 import { useCursor } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Plane, QuadraticBezierCurve3, Quaternion, Vector3, type Group } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { easeInOutCubic, easeOutBack, easeOutCubic } from '../lib/easing'
@@ -71,7 +71,12 @@ function capturePointer(target: EventTarget | null, pointerId: number, capture: 
  * One remaining part, floating on the inventory ring as a hologram. Click or drag it
  * towards its ghost outline to install it; it flies in along an arc and snaps home.
  */
-export function FloatingPart({ id, index, count, highlight }: FloatingPartProps) {
+export const FloatingPart = memo(function FloatingPart({
+  id,
+  index,
+  count,
+  highlight,
+}: FloatingPartProps) {
   const definition = PART_BY_ID[id]
   const model = getPartModel(id)
   const target = useMemo(() => toVector3(definition.transform.position), [definition])
@@ -333,12 +338,8 @@ export function FloatingPart({ id, index, count, highlight }: FloatingPartProps)
       <mesh visible={false} position={model.centre}>
         <sphereGeometry args={[hitRadius, 12, 8]} />
       </mesh>
-      {model.pieces.map((piece) => (
-        <group key={piece.finish}>
-          <mesh geometry={piece.geometry} material={materials.shell} raycast={() => null} />
-          <mesh geometry={piece.geometry} material={materials.wire} raycast={() => null} />
-        </group>
-      ))}
+      <mesh geometry={model.hologram} material={materials.shell} raycast={() => null} />
+      <mesh geometry={model.hologram} material={materials.wire} raycast={() => null} />
     </group>
   )
-}
+})

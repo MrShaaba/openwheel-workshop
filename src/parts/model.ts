@@ -8,6 +8,8 @@ export interface PartModel {
   id: PartId
   /** One merged geometry per finish, in the part's local space (pivot at the origin). */
   pieces: PartPiece[]
+  /** Every piece merged into one geometry for the hologram passes, which ignore the finish. */
+  hologram: BufferGeometry
   bounds: Box3
   size: Vector3
   centre: Vector3
@@ -45,10 +47,15 @@ export function getPartModel(id: PartId): PartModel {
     pieces.push({ geometry, finish })
   }
 
+  // Holograms draw the whole part with one material, so one draw call per pass is enough.
+  const hologram =
+    pieces.length === 1 ? pieces[0].geometry : merge(pieces.map((piece) => piece.geometry.clone()))
+
   const size = bounds.getSize(new Vector3())
   const model: PartModel = {
     id,
     pieces,
+    hologram,
     bounds,
     size,
     centre: bounds.getCenter(new Vector3()),
@@ -60,6 +67,9 @@ export function getPartModel(id: PartId): PartModel {
 
 /** Release every cached geometry (used on hot reload). */
 export function disposePartModels(): void {
-  for (const model of cache.values()) model.pieces.forEach((piece) => piece.geometry.dispose())
+  for (const model of cache.values()) {
+    model.pieces.forEach((piece) => piece.geometry.dispose())
+    if (model.pieces.length > 1) model.hologram.dispose()
+  }
   cache.clear()
 }

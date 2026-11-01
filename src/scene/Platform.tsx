@@ -2,7 +2,10 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import {
   BoxGeometry,
+  Float32BufferAttribute,
   Matrix4,
+  PlaneGeometry,
+  RingGeometry,
   type BufferGeometry,
   type Group,
   type MeshBasicMaterial,
@@ -18,8 +21,18 @@ import { idleSeconds } from './interaction'
 const IDLE_DELAY_SECONDS = 3
 const IDLE_SPEED = 0.09 // radians per second
 
-function buildTickMarks(): BufferGeometry {
+/**
+ * Every static line on the platform top (tick marks, guide rings, centre reticle) in one geometry
+ * and one draw call. Brightness differences ride in a vertex colour attribute.
+ */
+function buildOverlay(): BufferGeometry {
   const pieces: BufferGeometry[] = []
+  const add = (geometry: BufferGeometry, brightness: number) => {
+    const count = geometry.getAttribute('position').count
+    const colors = new Float32Array(count * 3).fill(brightness)
+    geometry.setAttribute('color', new Float32BufferAttribute(colors, 3))
+    pieces.push(geometry)
+  }
   const count = 72
   for (let i = 0; i < count; i++) {
     const major = i % 6 === 0
@@ -31,8 +44,12 @@ function buildTickMarks(): BufferGeometry {
       .makeRotationY(angle)
       .setPosition(Math.sin(angle) * radius, 0, Math.cos(angle) * radius)
     geometry.applyMatrix4(matrix)
-    pieces.push(geometry)
+    add(geometry, 1)
   }
+  add(new RingGeometry(2.18, 2.2, 128).rotateX(-Math.PI / 2), 0.75)
+  add(new RingGeometry(0.6, 0.615, 64).rotateX(-Math.PI / 2), 0.75)
+  add(new PlaneGeometry(2.4, 0.012).rotateX(-Math.PI / 2), 0.56)
+  add(new PlaneGeometry(0.012, 6.2).rotateX(-Math.PI / 2), 0.56)
   const merged = mergeGeometries(pieces)
   pieces.forEach((piece) => piece.dispose())
   return merged
@@ -49,11 +66,11 @@ interface PlatformProps {
 export function Platform({ children }: PlatformProps) {
   const group = useRef<Group>(null)
   const speed = useRef(0)
-  const ticks = useMemo(() => buildTickMarks(), [])
+  const overlay = useMemo(() => buildOverlay(), [])
   const ringMaterial = useRef<MeshBasicMaterial>(null)
   const glowMaterial = useRef<MeshBasicMaterial>(null)
 
-  useEffect(() => () => ticks.dispose(), [ticks])
+  useEffect(() => () => overlay.dispose(), [overlay])
 
   useFrame((_, dt) => {
     const state = useWorkshop.getState()
@@ -91,42 +108,16 @@ export function Platform({ children }: PlatformProps) {
         <meshBasicMaterial ref={ringMaterial} color={HOLO_COLOR} toneMapped={false} />
       </mesh>
 
-      {/* Inner guide rings */}
-      <mesh rotation-x={-Math.PI / 2} position-y={top + 0.002}>
-        <ringGeometry args={[2.18, 2.2, 128]} />
-        <meshBasicMaterial color={HOLO_COLOR_SOFT} toneMapped={false} transparent opacity={0.6} />
+      {/* Tick marks, guide rings and reticle: one merged geometry */}
+      <mesh geometry={overlay} position-y={top + 0.003}>
+        <meshBasicMaterial
+          color={HOLO_COLOR_SOFT}
+          vertexColors
+          toneMapped={false}
+          transparent
+          opacity={0.8}
+        />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position-y={top + 0.002}>
-        <ringGeometry args={[0.6, 0.615, 64]} />
-        <meshBasicMaterial color={HOLO_COLOR_SOFT} toneMapped={false} transparent opacity={0.6} />
-      </mesh>
-
-      {/* Tick marks around the perimeter */}
-      <mesh geometry={ticks} position-y={top + 0.003}>
-        <meshBasicMaterial color={HOLO_COLOR_SOFT} toneMapped={false} transparent opacity={0.8} />
-      </mesh>
-
-      {/* Centre reticle */}
-      <group position-y={top + 0.003}>
-        <mesh rotation-x={-Math.PI / 2}>
-          <planeGeometry args={[2.4, 0.012]} />
-          <meshBasicMaterial
-            color={HOLO_COLOR_SOFT}
-            toneMapped={false}
-            transparent
-            opacity={0.45}
-          />
-        </mesh>
-        <mesh rotation-x={-Math.PI / 2} rotation-z={Math.PI / 2}>
-          <planeGeometry args={[6.2, 0.012]} />
-          <meshBasicMaterial
-            color={HOLO_COLOR_SOFT}
-            toneMapped={false}
-            transparent
-            opacity={0.45}
-          />
-        </mesh>
-      </group>
 
       {/* Soft under-glow spilling onto the floor */}
       <mesh rotation-x={-Math.PI / 2} position-y={0.0005}>

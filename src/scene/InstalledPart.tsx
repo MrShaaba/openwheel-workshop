@@ -1,5 +1,5 @@
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { BufferGeometry, Float32BufferAttribute, Line, LineDashedMaterial, type Group } from 'three'
 import { easeInOutCubic } from '../lib/easing'
 import { clamp01, damp, lerp } from '../lib/math'
@@ -59,7 +59,7 @@ function createTether(): Line {
  * wipe; while another part is inspected this one fades most of the way back to hologram; in
  * Exploded View it slides out along its explode vector with a dashed tether back to its home.
  */
-export function InstalledPart({ id }: InstalledPartProps) {
+export const InstalledPart = memo(function InstalledPart({ id }: InstalledPartProps) {
   const definition = PART_BY_ID[id]
   const model = getPartModel(id)
   const [fresh] = useState(() => freshInstalls.has(id))
@@ -242,15 +242,11 @@ export function InstalledPart({ id }: InstalledPartProps) {
           <mesh key={piece.finish} geometry={piece.geometry} material={materials[index]} />
         ))}
         <group ref={hologramGroup} visible={fresh}>
-          {model.pieces.map((piece) => (
-            <group key={piece.finish}>
-              <mesh geometry={piece.geometry} material={hologram.shell} raycast={() => null} />
-              <mesh geometry={piece.geometry} material={hologram.wire} raycast={() => null} />
-            </group>
-          ))}
+          <mesh geometry={model.hologram} material={hologram.shell} raycast={() => null} />
+          <mesh geometry={model.hologram} material={hologram.wire} raycast={() => null} />
         </group>
       </group>
       <primitive object={tether} />
     </>
   )
-}
+})

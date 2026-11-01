@@ -12,8 +12,8 @@ export function Floor() {
       <mesh rotation-x={-Math.PI / 2} position-y={-0.004}>
         <planeGeometry args={[80, 80]} />
         <MeshReflectorMaterial
-          resolution={768}
-          blur={[400, 120]}
+          resolution={512}
+          blur={[320, 100]}
           mixBlur={1}
           mixStrength={12}
           mixContrast={1}

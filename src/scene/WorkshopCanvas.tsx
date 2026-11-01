@@ -11,7 +11,8 @@ import { Effects } from './Effects'
 import { markInteraction } from './interaction'
 import { Workshop } from './Workshop'
 
-const MAX_DPR = 2
+/** Retina screens render at 1.5x: with SMAA below that and the pixel density above, 2x is not visible. */
+const MAX_DPR = 1.5
 
 /** Flips the store's `ready` flag once the first frame has rendered, so the boot screen can clear. */
 function ReadySignal() {
@@ -43,10 +44,14 @@ export function WorkshopCanvas() {
     >
       <color attach="background" args={[BACKGROUND]} />
       <fog attach="fog" args={[BACKGROUND, 18, 48]} />
+      {/* Averages over about four seconds so a one-off hitch (many parts mounting at once) does not
+          drop the pixel ratio; it moves in quarter steps between 1 and the ceiling. */}
       <PerformanceMonitor
-        flipflops={3}
-        onDecline={() => setDpr((value) => Math.max(1, value - 0.5))}
-        onIncline={() => setDpr((value) => Math.min(ceiling, value + 0.5))}
+        ms={300}
+        iterations={14}
+        flipflops={4}
+        onDecline={() => setDpr((value) => Math.max(1, value - 0.25))}
+        onIncline={() => setDpr((value) => Math.min(ceiling, value + 0.25))}
         onFallback={() => setDpr(1)}
       />
       <Suspense fallback={null}>

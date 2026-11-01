@@ -52,12 +52,8 @@ export function GhostTarget({ id }: GhostTargetProps) {
       rotation={[rotation[0], rotation[1], rotation[2]]}
       raycast={() => null}
     >
-      {model.pieces.map((piece) => (
-        <group key={piece.finish}>
-          <mesh geometry={piece.geometry} material={materials.shell} raycast={() => null} />
-          <mesh geometry={piece.geometry} material={materials.wire} raycast={() => null} />
-        </group>
-      ))}
+      <mesh geometry={model.hologram} material={materials.shell} raycast={() => null} />
+      <mesh geometry={model.hologram} material={materials.wire} raycast={() => null} />
     </group>
   )
 }

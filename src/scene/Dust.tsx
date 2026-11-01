@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -30,7 +30,8 @@ const vertexShader = /* glsl */ `
     float twinkle = 0.65 + 0.35 * sin(uTime * (1.2 + aSeed * 2.0) + aSeed * 40.0);
     vAlpha = fadeIn * fadeOut * twinkle * (0.3 + 0.7 * fract(aSeed * 7.31));
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
-    gl_PointSize = aSize * uPixelRatio * (14.0 / max(-mv.z, 0.5));
+    // Capped so motes passing the camera do not become screen-filling overdraw.
+    gl_PointSize = min(aSize * (14.0 / max(-mv.z, 0.5)), 22.0) * uPixelRatio;
     gl_Position = projectionMatrix * mv;
   }
 `
@@ -69,6 +70,7 @@ export function Dust() {
   const dpr = useThree((state) => state.viewport.dpr)
   const material = useRef<ShaderMaterial>(null)
   const geometry = useMemo(() => buildGeometry(), [])
+  useEffect(() => () => geometry.dispose(), [geometry])
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },

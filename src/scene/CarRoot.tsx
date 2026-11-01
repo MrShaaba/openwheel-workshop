@@ -7,6 +7,20 @@ import { LockFlashes } from './LockFlashes'
 /** Everything that has been installed, plus the ghost outline for what comes next. */
 export function CarRoot() {
   const installed = useWorkshop((state) => state.installed)
+
+  return (
+    <group name="car-root">
+      {installed.map((id) => (
+        <InstalledPart key={id} id={id} />
+      ))}
+      <GhostSlot />
+      <LockFlashes />
+    </group>
+  )
+}
+
+/** Subscribes to hover and mode on its own, so those changes do not touch the installed parts. */
+function GhostSlot() {
   const installing = useWorkshop((state) => state.installing)
   const mode = useWorkshop((state) => state.mode)
   const hovered = useWorkshop((state) => state.hovered)
@@ -19,13 +33,5 @@ export function CarRoot() {
   // The ghost would sit inside the exploded cloud, so it hides while the view is exploded.
   const ghost = exploded ? null : (installing ?? guidedGhost ?? freeGhost)
 
-  return (
-    <group name="car-root">
-      {installed.map((id) => (
-        <InstalledPart key={id} id={id} />
-      ))}
-      {ghost ? <GhostTarget key={ghost} id={ghost} /> : null}
-      <LockFlashes />
-    </group>
-  )
+  return ghost ? <GhostTarget key={ghost} id={ghost} /> : null
 }

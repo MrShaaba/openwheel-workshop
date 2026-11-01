@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
-import { AdditiveBlending, Color, ConeGeometry, DoubleSide, type ShaderMaterial } from 'three'
+import { useEffect, useMemo, useRef } from 'react'
+import { AdditiveBlending, Color, ConeGeometry, type ShaderMaterial } from 'three'
 import { TAU } from '../lib/math'
 
 const vertexShader = /* glsl */ `
@@ -63,7 +63,8 @@ function Shaft({ spec, geometry }: ShaftProps) {
     () => ({
       uTime: { value: 0 },
       uSeed: { value: spec.seed },
-      uIntensity: { value: spec.intensity },
+      // Front faces only (see below), so the intensity makes up for the missing back wall.
+      uIntensity: { value: spec.intensity * 1.6 },
       uColor: { value: new Color('#9fe3ff') },
     }),
     [spec],
@@ -88,7 +89,6 @@ function Shaft({ spec, geometry }: ShaftProps) {
         transparent
         depthWrite={false}
         blending={AdditiveBlending}
-        side={DoubleSide}
       />
     </mesh>
   )
@@ -97,6 +97,7 @@ function Shaft({ spec, geometry }: ShaftProps) {
 /** Tall additive cones that read as volumetric light falling from the ceiling rig. */
 export function LightShafts() {
   const geometry = useMemo(() => new ConeGeometry(1.7, 10.4, 28, 1, true), [])
+  useEffect(() => () => geometry.dispose(), [geometry])
   return (
     <group>
       {SHAFTS.map((spec) => (
