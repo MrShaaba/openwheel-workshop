@@ -3,8 +3,9 @@
 Phases 1 to 5 are built: the workshop scene, camera and HUD; the part system with Guided and Free
 Build; the materialise shader, procedural sound, info cards and Inspect mode; Exploded View,
 Assemble All, the completion sequence, save and resume, and Reset build; the paint shop, the tablet
-layout, the accessibility and performance passes and a round of visual polish. Only the stretch goals
-remain. The data model already carries what they need (the `PartSource` union covers GLB models).
+layout, the accessibility and performance passes and a round of visual polish. Of the stretch goals,
+the test drive is built behind its flag; the GLB model swap remains, and the data model already
+carries what it needs (the `PartSource` union covers GLB models).
 
 ## Phase 4: Exploded View, Assemble All, completion, save and resume (built)
 
@@ -45,9 +46,17 @@ remain. The data model already carries what they need (the `PartSource` union co
 
 ## Stretch goals (behind flags, after Phase 5)
 
-- [ ] **Test-drive mode.** `VITE_ENABLE_TEST_DRIVE=true` shows a Drive button once the car is
-      complete: flat track scene, keyboard controls (arrows or WASD), simple kinematic car model,
-      engine pitch follows speed.
+- [x] **Test-drive mode.** `VITE_ENABLE_TEST_DRIVE=true` adds a Drive button and the `D` key once
+      the car is complete. `src/drive/`: a fade to black while the workshop and the track scene
+      trade places; a 715 m circuit built from straights and circular fillets (`track.ts`) with a
+      road ribbon, glowing edges, red and white kerbs through the corners, marker posts, a start
+      gantry and a soft arena wall; the finished car from the same part models and livery hook;
+      WASD or arrow driving on a kinematic bicycle model with a speed-dependent steering lock, a
+      grip limit, drag, run-off and a six-speed gearbox; a chase camera whose heading trails the
+      car; lap timing with last and best; a HUD with speed, gear, rev bar and minimap; and a
+      continuous engine voice in the synth that follows revs and load, with wind, tyre scrub and
+      run-off rumble. `Esc` returns to the workshop and the camera flies back to hero. With the
+      flag off nothing is rendered, bound or fetched.
 - [ ] **GLB model swap.** Drop a `.glb` into `public/models/`, change the part's `source` in
       `src/parts/registry.ts` to `{ kind: 'glb', url: '/models/<file>.glb', scale }`, and
       `InstalledPart` loads it with `useGLTF` inside Suspense instead of calling the geometry

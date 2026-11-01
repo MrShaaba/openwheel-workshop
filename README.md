@@ -36,10 +36,15 @@ the workshop's paint shop, and come back later: the build and the livery are sav
   objective and toasts are live regions, and reduced-motion settings are respected.
 - **Procedural everything.** No models, textures, fonts or audio files. Geometry is built from
   primitives, lathes and extrusions; every sound is synthesised with the Web Audio API.
+- **Test drive (behind a flag).** With `VITE_ENABLE_TEST_DRIVE=true`, a finished car gets a Drive
+  button: a flat night circuit with glowing edges and kerbs, arcade driving on WASD or the arrows,
+  a chase camera, lap timing with a minimap, and an engine note that follows the revs.
 
 ![Exploded View](docs/exploded.png)
 
 ![Paint shop](docs/paint-shop.png)
+
+![Test drive](docs/test-drive.png)
 
 ## Who it is for
 
@@ -74,6 +79,11 @@ npm run dev
 
 Open <http://localhost:5173>.
 
+To switch on the test drive, copy `.env.example` to `.env.local` and set `VITE_ENABLE_TEST_DRIVE=true`
+(or prefix the command: `VITE_ENABLE_TEST_DRIVE=true npm run dev`). The flag is read at build time, so
+the dev server needs a restart after changing it, and a production build without it contains no
+drive controls.
+
 | Script            | What it does                         |
 | ----------------- | ------------------------------------ |
 | `npm run dev`     | Start the dev server with hot reload |
@@ -101,6 +111,18 @@ Open <http://localhost:5173>.
 | Reset build (HUD)       | Clear the build and its saved copy, after a confirmation           |
 | Checklist rows (HUD)    | Install an available part or inspect an installed one              |
 
+With the test drive enabled:
+
+| Input                 | Action                                            |
+| --------------------- | ------------------------------------------------- |
+| D or Test drive (HUD) | Leave the finished car's workshop for the circuit |
+| W / Up                | Throttle                                          |
+| S / Down              | Brake, then reverse from a standstill             |
+| A D / Left Right      | Steer                                             |
+| Space                 | Handbrake                                         |
+| R                     | Put the car back on the grid                      |
+| Esc                   | Back to the workshop                              |
+
 ## Save and resume
 
 The build is written to `localStorage` under the key `open-wheel-workshop:build` with a schema
@@ -108,6 +130,17 @@ version. On load the saved list is checked against the part registry: unknown id
 parts whose dependencies are missing are dropped, and a value that cannot be parsed is discarded,
 so the app always boots to a consistent car. Storage that is blocked (private windows, quota) falls
 back to memory for the session.
+
+## Test drive
+
+The circuit in `src/drive/track.ts` is straights joined by circular fillets with a radius per corner,
+sampled every metre, so the tightest radius is guaranteed by construction. The road, edge lines,
+kerbs and posts are built from those samples; the same samples give the car its nearest point on the
+track for run-off detection and lap progress, and the minimap path. The car is the workshop's own part
+models and livery, driven by a kinematic bicycle model with a speed-dependent steering lock, a grip
+limit that turns into understeer, drag, run-off that saps speed and a six-speed gearbox that only
+exists to give the engine note something to climb. The drive scene and its HUD load as their own
+chunk, fetched when the car is complete.
 
 ## Performance
 
@@ -128,6 +161,7 @@ src/
   state/     zustand store, selectors, persistence adapter
   audio/     Web Audio synth
   ui/        HUD, checklist, info card, paint shop, mode controls, dialogs, loading screen
+  drive/     test drive (flagged): circuit, physics, input, chase camera, drive HUD
 ```
 
 Part metadata has one source of truth in `src/parts/registry.ts`. Adding a part takes one entry
@@ -137,8 +171,9 @@ there, one geometry function in `src/parts/geometry/` and one card in `src/parts
 
 Phases 1 to 5 are built: workshop, Guided and Free Build, the materialise shader, sound, info cards,
 Inspect, Exploded View, Assemble All, the completion sequence, save and resume, the paint shop, the
-tablet layout, the accessibility and performance passes and a round of visual polish. See
-[ROADMAP.md](ROADMAP.md) for the stretch goals.
+tablet layout, the accessibility and performance passes and a round of visual polish. Of the stretch
+goals, the test drive is built behind `VITE_ENABLE_TEST_DRIVE`; the GLB model swap remains. See
+[ROADMAP.md](ROADMAP.md).
 
 ## License
 
