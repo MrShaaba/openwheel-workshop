@@ -19,12 +19,15 @@ export function HUD() {
 
   return (
     <div className="hud">
-      <div className="hud-scanlines" />
-      <div className="hud-sweep" />
-      <span className="hud-corner tl" />
-      <span className="hud-corner tr" />
-      <span className="hud-corner bl" />
-      <span className="hud-corner br" />
+      <a className="skip-link" href="#objective">
+        Skip to build controls
+      </a>
+      <div className="hud-scanlines" aria-hidden="true" />
+      <div className="hud-sweep" aria-hidden="true" />
+      <span className="hud-corner tl" aria-hidden="true" />
+      <span className="hud-corner tr" aria-hidden="true" />
+      <span className="hud-corner bl" aria-hidden="true" />
+      <span className="hud-corner br" aria-hidden="true" />
 
       <motion.div
         className="hud-layer"
@@ -32,7 +35,7 @@ export function HUD() {
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{ duration: 0.9, delay: 1.6 }}
       >
-        <header className="hud-top">
+        <header className="hud-top" aria-label="Build status and settings">
           <Brand />
           <StageProgress />
           <ModeControls />
@@ -49,7 +52,7 @@ export function HUD() {
           </aside>
         </section>
 
-        <footer className="hud-bottom">
+        <footer className="hud-bottom" aria-label="Objective and camera">
           <KeyLegend />
           <Objective />
           <CameraPresets />

@@ -30,15 +30,19 @@ export function StageProgress() {
             .filter(Boolean)
             .join(' ')
           return (
-            <div key={entry.stage} className={className}>
-              <div className="bar">
+            <div
+              key={entry.stage}
+              className={className}
+              aria-label={`${stage.name}: ${entry.done} of ${entry.total} installed`}
+            >
+              <div className="bar" aria-hidden="true">
                 <motion.span
                   initial={false}
                   animate={{ scaleX: entry.total === 0 ? 0 : entry.done / entry.total }}
                   transition={{ type: 'spring', stiffness: 120, damping: 20 }}
                 />
               </div>
-              <div className="tag">
+              <div className="tag" aria-hidden="true">
                 <span>
                   {stage.code} <span className="stage-name">{stage.name.toUpperCase()}</span>
                 </span>

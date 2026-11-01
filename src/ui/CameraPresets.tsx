@@ -28,9 +28,10 @@ export function CameraPresets() {
             type="button"
             className="hud-btn"
             onClick={() => requestCamera(preset)}
+            aria-keyshortcuts={String(index + 1)}
           >
             {LABELS[preset]}
-            <kbd>{index + 1}</kbd>
+            <kbd aria-hidden="true">{index + 1}</kbd>
           </button>
         ))}
       </div>
@@ -40,10 +41,11 @@ export function CameraPresets() {
           className={`hud-btn ${exploded ? 'active' : ''}`}
           onClick={toggleExploded}
           aria-pressed={exploded}
+          aria-keyshortcuts="E"
           disabled={!exploded && !canExplode}
         >
           Exploded view
-          <kbd>E</kbd>
+          <kbd aria-hidden="true">E</kbd>
         </button>
       </div>
     </div>

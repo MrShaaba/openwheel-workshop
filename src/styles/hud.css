@@ -168,11 +168,6 @@
   box-shadow: 0 0 14px rgba(56, 231, 255, 0.22);
 }
 
-.hud-btn:focus-visible {
-  outline: 1px solid var(--cyan);
-  outline-offset: 2px;
-}
-
 .hud-btn.active {
   color: #ffffff;
   background: rgba(56, 231, 255, 0.18);
@@ -384,15 +379,33 @@
 }
 
 .checklist li {
+  border-bottom: 1px dashed rgba(56, 231, 255, 0.12);
+}
+
+.checklist-row {
+  pointer-events: auto;
   display: grid;
   grid-template-columns: 14px 1fr auto;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
+  width: 100%;
+  margin: 0;
   padding: 3px 0;
-  border-bottom: 1px dashed rgba(56, 231, 255, 0.12);
+  background: none;
+  border: 0;
+  font: 11px var(--mono);
+  letter-spacing: 0.04em;
+  text-align: left;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.checklist-row:hover:not([aria-disabled='true']) {
+  color: #ffffff;
+}
+
+.checklist-row[aria-disabled='true'] {
+  cursor: default;
 }
 
 .checklist li .code {
@@ -407,7 +420,7 @@
   border: 1px solid rgba(56, 231, 255, 0.45);
 }
 
-.checklist li.done {
+.checklist li.done .checklist-row {
   color: var(--text);
 }
 .checklist li.done .mark {
@@ -415,7 +428,7 @@
   box-shadow: 0 0 8px var(--cyan);
 }
 
-.checklist li.next {
+.checklist li.next .checklist-row {
   color: #ffffff;
 }
 .checklist li.next .mark {
@@ -745,8 +758,16 @@
     width: 38px;
     height: 30px;
   }
-  .checklist li {
+  .checklist-row {
     padding: 6px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-sweep,
+  .checklist li.next .mark,
+  .systems-online-title .caret {
+    animation: none;
   }
 }
 

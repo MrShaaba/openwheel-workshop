@@ -15,7 +15,7 @@ export function Toast() {
   }, [toast, dismiss])
 
   return (
-    <div className="toast-slot" aria-live="assertive">
+    <div className="toast-slot" role="status" aria-live="assertive" aria-atomic="true">
       <AnimatePresence mode="wait">
         {toast && (
           <motion.div

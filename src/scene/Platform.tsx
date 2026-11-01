@@ -9,6 +9,7 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { damp, TAU } from '../lib/math'
+import { prefersReducedMotion } from '../lib/motion'
 import { useWorkshop } from '../state/store'
 import { HOLO_COLOR, HOLO_COLOR_SOFT, PLATFORM_HEIGHT, PLATFORM_RADIUS } from './constants'
 import { completionGlow } from './effectsBus'
@@ -58,6 +59,7 @@ export function Platform({ children }: PlatformProps) {
     const state = useWorkshop.getState()
     const idle =
       idleSeconds() > IDLE_DELAY_SECONDS &&
+      !prefersReducedMotion() &&
       state.installing === null &&
       state.inspecting === null &&
       state.dragging === null

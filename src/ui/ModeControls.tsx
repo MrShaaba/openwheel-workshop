@@ -42,9 +42,10 @@ export function ModeControls() {
           className={`hud-btn ${muted ? 'active' : ''}`}
           onClick={toggleMute}
           aria-pressed={muted}
+          aria-keyshortcuts="M"
         >
           {muted ? 'Sound off' : 'Sound on'}
-          <kbd>M</kbd>
+          <kbd aria-hidden="true">M</kbd>
         </button>
         <button
           type="button"
@@ -64,6 +65,8 @@ export function ModeControls() {
           setConfirming(false)
           reset()
           notify('Build reset')
+          // The Reset button disables itself once the build is empty, so focus moves to the objective.
+          document.getElementById('objective')?.focus({ preventScroll: true })
         }}
       >
         <p>

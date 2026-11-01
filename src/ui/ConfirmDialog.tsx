@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useId, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -21,6 +21,17 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const titleId = useId()
   const bodyId = useId()
+  const cancel = useRef<HTMLButtonElement>(null)
+
+  // Cancel takes focus (so Space is safe); whatever opened the dialog gets it back on close.
+  useEffect(() => {
+    if (!open) return
+    const opener = document.activeElement
+    cancel.current?.focus()
+    return () => {
+      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus()
+    }
+  }, [open])
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     // Shortcuts on window must not fire while the dialog has focus.
@@ -75,9 +86,15 @@ export function ConfirmDialog({
               {children}
             </div>
             <div className="dialog-actions">
-              <button type="button" className="hud-btn" onClick={onCancel} autoFocus>
+              <button
+                ref={cancel}
+                type="button"
+                className="hud-btn"
+                onClick={onCancel}
+                aria-keyshortcuts="Escape"
+              >
                 Cancel
-                <kbd>ESC</kbd>
+                <kbd aria-hidden="true">ESC</kbd>
               </button>
               <button type="button" className="hud-btn danger" onClick={onConfirm}>
                 {confirmLabel}

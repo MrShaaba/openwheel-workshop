@@ -220,9 +220,9 @@ function LiveryControls() {
         <button type="button" className="hud-btn" onClick={resetLivery}>
           Default
         </button>
-        <button type="button" className="hud-btn" onClick={closeLivery}>
+        <button type="button" className="hud-btn" onClick={closeLivery} aria-keyshortcuts="Escape">
           Close
-          <kbd>ESC</kbd>
+          <kbd aria-hidden="true">ESC</kbd>
         </button>
       </div>
     </>

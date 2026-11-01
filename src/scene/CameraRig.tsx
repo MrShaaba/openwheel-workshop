@@ -5,6 +5,7 @@ import { Box3, PerspectiveCamera, Sphere, Vector3, type Camera, type Scene } fro
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { easeInOutCubic } from '../lib/easing'
 import { clamp } from '../lib/math'
+import { prefersReducedMotion } from '../lib/motion'
 import { PART_BY_ID } from '../parts/registry'
 import type { PartId, Vec3 } from '../parts/types'
 import { useWorkshop } from '../state/store'
@@ -128,7 +129,8 @@ export function CameraRig() {
       t: 0,
     }
     sweep.current = null
-    sweepPending.current = request.kind === 'sweep'
+    // Under reduced motion the completion sweep is a single move to its start pose.
+    sweepPending.current = request.kind === 'sweep' && !prefersReducedMotion()
     controls.current.enabled = false
     markInteraction()
   }, [request, camera, scene])

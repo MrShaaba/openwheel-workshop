@@ -1,3 +1,4 @@
+import { MotionConfig } from 'framer-motion'
 import { useEffect } from 'react'
 import { useAudio } from './audio/useAudio'
 import { useKeyboard } from './hooks/useKeyboard'
@@ -23,12 +24,16 @@ export default function App() {
   }, [])
 
   return (
-    <>
-      <div className="scene-layer">
+    <MotionConfig reducedMotion="user">
+      <div
+        className="scene-layer"
+        role="region"
+        aria-label="Holographic workshop. Drag to orbit, scroll to zoom; every action is also in the panels and on the keyboard."
+      >
         <WorkshopCanvas />
       </div>
       <HUD />
       <LoadingScreen />
-    </>
+    </MotionConfig>
   )
 }

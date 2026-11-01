@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { dependentsOf } from '../parts/graph'
 import { INFO_CARDS } from '../parts/infoCards'
 import { PART_BY_ID, STAGE_BY_ID } from '../parts/registry'
@@ -17,6 +17,19 @@ export function InfoCard() {
     () => (inspecting ? dependentsOf(inspecting, installed) : []),
     [inspecting, installed],
   )
+  const heading = useRef<HTMLHeadingElement>(null)
+
+  // Opening moves focus to the card title; closing hands it back to whatever opened the card.
+  useEffect(() => {
+    if (!inspecting) return
+    const opener = document.activeElement
+    heading.current?.focus({ preventScroll: true })
+    return () => {
+      if (opener instanceof HTMLElement && opener !== document.body && document.contains(opener)) {
+        opener.focus()
+      }
+    }
+  }, [inspecting])
 
   return (
     <AnimatePresence>
@@ -40,7 +53,9 @@ export function InfoCard() {
                   <span className="label">
                     {stage.code} · {stage.name} · {part.code}
                   </span>
-                  <h2>{card.title}</h2>
+                  <h2 ref={heading} tabIndex={-1}>
+                    {card.title}
+                  </h2>
                 </div>
                 <p className="info-role">{card.role}</p>
                 <div className="label">Engineering notes</div>
@@ -72,9 +87,14 @@ export function InfoCard() {
                   >
                     Detach
                   </button>
-                  <button type="button" className="hud-btn" onClick={() => inspect(null)}>
+                  <button
+                    type="button"
+                    className="hud-btn"
+                    onClick={() => inspect(null)}
+                    aria-keyshortcuts="Escape"
+                  >
                     Close
-                    <kbd>ESC</kbd>
+                    <kbd aria-hidden="true">ESC</kbd>
                   </button>
                 </div>
               </>

@@ -9,7 +9,7 @@ const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 export function useKeyboard(): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return
       if (event.target instanceof HTMLElement && EDITABLE_TAGS.has(event.target.tagName)) {
         // Typing in a field never triggers shortcuts; Esc hands focus back to the page.
         if (event.key === 'Escape') event.target.blur()

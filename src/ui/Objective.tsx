@@ -66,7 +66,14 @@ export function Objective() {
   }
 
   return (
-    <div className="panel objective" aria-live="polite">
+    <section
+      id="objective"
+      className="panel objective"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      tabIndex={-1}
+    >
       <div className="label">{label}</div>
       <div className="objective-title">{title}</div>
       <div className="objective-hint">{hint}</div>
@@ -77,9 +84,10 @@ export function Objective() {
             className={`hud-btn ${liveryOpen ? 'active' : ''}`}
             onClick={toggleLivery}
             aria-pressed={liveryOpen}
+            aria-keyshortcuts="L"
           >
             Paint shop
-            <kbd>L</kbd>
+            <kbd aria-hidden="true">L</kbd>
           </button>
         </div>
       )}
@@ -87,9 +95,14 @@ export function Objective() {
         <div className="objective-actions">
           {assembling ? (
             <>
-              <button type="button" className="hud-btn" onClick={stopAssembly}>
+              <button
+                type="button"
+                className="hud-btn"
+                onClick={stopAssembly}
+                aria-keyshortcuts="Escape"
+              >
                 Stop
-                <kbd>ESC</kbd>
+                <kbd aria-hidden="true">ESC</kbd>
               </button>
               <button type="button" className="hud-btn" onClick={skipToEnd}>
                 Skip to end
@@ -102,9 +115,10 @@ export function Objective() {
                 className="hud-btn"
                 disabled={!canInstall}
                 onClick={() => candidate && attemptInstall(candidate)}
+                aria-keyshortcuts="Space"
               >
                 Install
-                <kbd>SPACE</kbd>
+                <kbd aria-hidden="true">SPACE</kbd>
               </button>
               <button
                 type="button"
@@ -118,6 +132,6 @@ export function Objective() {
           )}
         </div>
       )}
-    </div>
+    </section>
   )
 }

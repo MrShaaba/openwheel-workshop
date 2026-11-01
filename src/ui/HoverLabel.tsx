@@ -11,7 +11,7 @@ export function HoverLabel() {
   const isInstalled = hovered ? installed.includes(hovered) : false
 
   return (
-    <div className="hover-slot">
+    <div className="hover-slot" aria-hidden="true">
       <AnimatePresence>
         {show && (
           <motion.div
