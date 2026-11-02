@@ -37,6 +37,7 @@ export function useAudio(): void {
       if (state.celebration !== previous.celebration && state.celebration !== null) {
         synth.engineRev()
       }
+      if (state.badges.length > previous.badges.length) synth.fanfare()
     })
 
     return () => {

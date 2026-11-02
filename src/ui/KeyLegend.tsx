@@ -21,6 +21,9 @@ export function KeyLegend() {
         <kbd>G</kbd> race engineer
       </span>
       <span>
+        <kbd>B</kbd> pit stop
+      </span>
+      <span>
         <kbd>1-6</kbd> views
       </span>
       <span>

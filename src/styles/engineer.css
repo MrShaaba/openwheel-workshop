@@ -323,3 +323,369 @@
     font-size: 20px;
   }
 }
+
+/* ---------- Badges ---------- */
+
+.badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-self: center;
+}
+
+.badge {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  color: #ffe9b8;
+  border: 1px solid rgba(255, 210, 31, 0.5);
+  background: rgba(255, 210, 31, 0.08);
+  box-shadow: 0 0 12px rgba(255, 210, 31, 0.2);
+}
+
+/* ---------- Pit stop tab ---------- */
+
+.pit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pit-top {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: end;
+  gap: 20px;
+}
+
+.pit-clock-block,
+.pit-best {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pit-clock {
+  font-size: 40px;
+  line-height: 1;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgba(56, 231, 255, 0.5);
+  min-width: 5ch;
+}
+
+.pit-best-value {
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.pit-progress {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 4px;
+  height: 8px;
+  align-self: center;
+}
+
+.pit-progress i {
+  display: block;
+  background: rgba(56, 231, 255, 0.12);
+  border: 1px solid rgba(56, 231, 255, 0.22);
+}
+
+.pit-progress i.done {
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+.pit-progress i.now {
+  border-color: #ffffff;
+  animation: pit-now 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes pit-now {
+  to {
+    background: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.pit-stage {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.pit-stage.shaken.shake-a {
+  animation: pit-shake 0.3s ease-out;
+}
+
+.pit-stage.shaken.shake-b {
+  animation: pit-shake-b 0.3s ease-out;
+}
+
+@keyframes pit-shake {
+  20% {
+    transform: translateX(-6px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  80% {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes pit-shake-b {
+  20% {
+    transform: translateX(6px);
+  }
+  50% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.pit-box {
+  width: 100%;
+  height: auto;
+  max-height: 390px;
+  /* The car rolls in from above and out again; both happen out of frame. */
+  overflow: hidden;
+}
+
+.pit-box-floor {
+  fill: rgba(56, 231, 255, 0.05);
+  stroke: rgba(56, 231, 255, 0.3);
+}
+
+.pit-box-mark {
+  fill: none;
+  stroke: #ffd21f;
+  stroke-width: 3;
+  stroke-linecap: square;
+}
+
+.pit-box-centre {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-dasharray: 4 6;
+}
+
+.pit-body {
+  fill: #12306e;
+  stroke: rgba(56, 231, 255, 0.6);
+  stroke-width: 1.5;
+}
+
+.pit-wing {
+  fill: #0b0d12;
+  stroke: rgba(56, 231, 255, 0.5);
+}
+
+.pit-halo {
+  fill: none;
+  stroke: #b4bbc4;
+  stroke-width: 2.5;
+}
+
+.pit-jack {
+  fill: #2a3038;
+  stroke: rgba(56, 231, 255, 0.4);
+  transition: fill 0.15s ease;
+}
+
+.pit-jack.up {
+  fill: var(--cyan);
+}
+
+.pit-tyre {
+  fill: #0e0f11;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 2;
+  transition:
+    fill 0.15s ease,
+    stroke 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.pit-wheel.off .pit-tyre {
+  opacity: 0.18;
+  stroke-dasharray: 4 4;
+}
+
+.pit-wheel.new .pit-tyre {
+  fill: #1a1d22;
+  stroke: var(--cyan);
+  filter: drop-shadow(0 0 5px rgba(56, 231, 255, 0.7));
+}
+
+.pit-wheel.wanted .pit-tyre {
+  stroke: #ffd21f;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgba(255, 210, 31, 0.9));
+  animation: pit-want 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pit-want {
+  to {
+    stroke-width: 5;
+  }
+}
+
+.pit-key {
+  font: 700 15px var(--mono);
+  fill: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.pit-wheel.wanted .pit-key {
+  fill: #ffd21f;
+}
+
+.pit-light {
+  fill: #2a3038;
+  stroke: rgba(255, 255, 255, 0.3);
+}
+
+.pit-light.red {
+  fill: var(--danger);
+  filter: drop-shadow(0 0 8px rgba(255, 77, 109, 0.9));
+}
+
+.pit-light.green {
+  fill: #4ade80;
+  filter: drop-shadow(0 0 10px rgba(74, 222, 128, 1));
+}
+
+.pit-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 300px;
+}
+
+.pit-title {
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 0 14px rgba(56, 231, 255, 0.45);
+}
+
+.pit-text {
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.pit-text kbd {
+  font: 11px var(--mono);
+  padding: 1px 5px;
+  color: var(--cyan);
+  border: 1px solid rgba(56, 231, 255, 0.35);
+  border-radius: 2px;
+}
+
+.pit-text.warn {
+  color: #ffd3dc;
+}
+
+.pit-text.best {
+  color: var(--cyan);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+
+.pit-prompt {
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 0 14px rgba(56, 231, 255, 0.5);
+}
+
+.pit-prompt-key kbd {
+  display: inline-block;
+  min-width: 64px;
+  padding: 10px 16px;
+  font: 500 28px/1 var(--mono);
+  text-align: center;
+  color: #ffd21f;
+  border: 2px solid #ffd21f;
+  border-radius: 4px;
+  box-shadow: 0 0 18px rgba(255, 210, 31, 0.45);
+}
+
+.pit-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.pit-cta {
+  align-self: flex-start;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
+.pit-result {
+  font-size: 34px;
+  line-height: 1;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgba(56, 231, 255, 0.5);
+}
+
+.pit-result small {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.pit-fact {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(56, 231, 255, 0.16);
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.pit-fact .label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 900px) {
+  .pit-stage {
+    grid-template-columns: 1fr;
+  }
+  .pit-box {
+    max-height: 260px;
+  }
+  .pit-side {
+    min-height: 0;
+  }
+  .pit-top {
+    grid-template-columns: auto auto;
+  }
+  .pit-progress {
+    grid-column: 1 / -1;
+  }
+  .pit-clock {
+    font-size: 32px;
+  }
+}

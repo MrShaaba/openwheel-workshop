@@ -11,6 +11,7 @@ import {
 import { PART_BY_ID, PART_COUNT } from '../parts/registry'
 import type { PartId } from '../parts/types'
 import { DEFAULT_LIVERY, type Livery } from './livery'
+import { BADGES, type BadgeId } from './badges'
 import { DEFAULT_SETUP, type CarSetup } from './setup'
 import {
   createSafeStorage,
@@ -24,6 +25,7 @@ import {
 export type { BuildMode } from '../parts/graph'
 export { DEFAULT_LIVERY, type Livery, type LiveryPattern } from './livery'
 export type { CarSetup, TyreCompound } from './setup'
+export type { BadgeId } from './badges'
 
 /** The Race engineer panel's tabs. */
 export type EngineerView = 'setup' | 'pitstop' | 'quiz' | 'timetrial'
@@ -130,6 +132,10 @@ export interface WorkshopState extends PersistedState {
   closeEngineer: () => void
   /** `G`: opens the last tab, or closes the panel. */
   toggleEngineer: () => void
+  /** A finished pit-stop challenge: keeps the best time and hands out the badge. */
+  recordPitStop: (ms: number, mistakes: number) => void
+  /** Adds a badge once, with a toast. */
+  awardBadge: (badge: BadgeId) => void
   reset: () => void
 }
 
@@ -174,6 +180,8 @@ export const useWorkshop = create<WorkshopState>()(
       muted: false,
       livery: DEFAULT_LIVERY,
       setup: DEFAULT_SETUP,
+      pitBestMs: null,
+      badges: [],
 
       ready: false,
       hydrated: false,
@@ -419,6 +427,22 @@ export const useWorkshop = create<WorkshopState>()(
           return
         }
         state.openEngineer(lastEngineerView)
+      },
+
+      recordPitStop: (ms, mistakes) => {
+        const state = get()
+        const best = state.pitBestMs === null || ms < state.pitBestMs
+        if (best) set({ pitBestMs: ms })
+        if (ms <= 5000 && mistakes === 0) state.awardBadge('pit-crew')
+      },
+
+      awardBadge: (badge) => {
+        const state = get()
+        if (state.badges.includes(badge)) return
+        set({
+          badges: [...state.badges, badge],
+          toast: makeToast(`Badge unlocked: ${BADGES[badge].name}`, 'success'),
+        })
       },
 
       reset: () =>

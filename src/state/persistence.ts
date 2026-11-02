@@ -2,6 +2,7 @@ import type { StateStorage } from 'zustand/middleware'
 import { dependenciesMet, type BuildMode } from '../parts/graph'
 import { PART_IDS, type PartId } from '../parts/types'
 import { DEFAULT_LIVERY, LIVERY_PATTERNS, type Livery, type LiveryPattern } from './livery'
+import { sanitizeBadges, type BadgeId } from './badges'
 import { sanitizeSetup, type CarSetup } from './setup'
 
 export const STORAGE_KEY = 'open-wheel-workshop:build'
@@ -16,6 +17,9 @@ export interface PersistedState {
   livery: Livery
   /** Test-drive car setup. Kept even when the drive flag is off, so it is there when it comes on. */
   setup: CarSetup
+  /** Best pit-stop challenge time in milliseconds. */
+  pitBestMs: number | null
+  badges: BadgeId[]
 }
 
 /**
@@ -120,6 +124,11 @@ export function sanitizePersisted(value: unknown): PersistedState {
     muted: raw.muted === true,
     livery: sanitizeLivery(raw.livery),
     setup: sanitizeSetup(raw.setup),
+    pitBestMs:
+      typeof raw.pitBestMs === 'number' && Number.isFinite(raw.pitBestMs) && raw.pitBestMs > 0
+        ? raw.pitBestMs
+        : null,
+    badges: sanitizeBadges(raw.badges),
   }
 }
 
@@ -130,5 +139,7 @@ export function pickPersisted<T extends PersistedState>(state: T): PersistedStat
     muted: state.muted,
     livery: state.livery,
     setup: state.setup,
+    pitBestMs: state.pitBestMs,
+    badges: state.badges,
   }
 }

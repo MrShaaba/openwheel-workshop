@@ -158,6 +158,17 @@ export default function DriveHUD() {
           </button>
           <button
             type="button"
+            className="hud-btn"
+            onClick={() => openEngineer('pitstop')}
+            onPointerEnter={preloadEngineer}
+            onFocus={preloadEngineer}
+            aria-keyshortcuts="B"
+          >
+            Box
+            <kbd aria-hidden="true">B</kbd>
+          </button>
+          <button
+            type="button"
             className={`hud-btn ${muted ? 'active' : ''}`}
             onClick={toggleMute}
             aria-pressed={muted}
@@ -272,6 +283,9 @@ export default function DriveHUD() {
         </span>
         <span>
           <kbd>T</kbd> setup
+        </span>
+        <span>
+          <kbd>B</kbd> pit stop
         </span>
         <span>
           <kbd>G</kbd> engineer

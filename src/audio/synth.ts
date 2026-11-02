@@ -324,6 +324,70 @@ class Synth {
     this.engine = null
   }
 
+  /** A wheel gun: a ratchety buzz for the pit-stop game. */
+  wheelGun(): void {
+    const r = this.ready()
+    if (!r) return
+    const osc = r.ctx.createOscillator()
+    const am = r.ctx.createOscillator()
+    const amGain = r.ctx.createGain()
+    const gain = r.ctx.createGain()
+    const filter = r.ctx.createBiquadFilter()
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(95, r.now)
+    osc.frequency.exponentialRampToValueAtTime(140, r.now + 0.16)
+    am.type = 'square'
+    am.frequency.value = 38
+    amGain.gain.value = 0.5
+    am.connect(amGain).connect(gain.gain)
+    filter.type = 'bandpass'
+    filter.frequency.value = 1400
+    filter.Q.value = 1.2
+    gain.gain.setValueAtTime(0.5, r.now)
+    gain.gain.exponentialRampToValueAtTime(0.0001, r.now + 0.2)
+    osc.connect(filter).connect(gain).connect(r.out)
+    osc.start(r.now)
+    am.start(r.now)
+    osc.stop(r.now + 0.22)
+    am.stop(r.now + 0.22)
+    this.noiseBurst(r, 3000, 1.2, 0.12, 0.12)
+  }
+
+  /** Four rising notes and a held chord, for a badge or a perfect round. */
+  fanfare(): void {
+    const r = this.ready()
+    if (!r) return
+    const notes = [523.25, 659.25, 783.99, 1046.5]
+    notes.forEach((frequency, index) => {
+      const at = r.now + index * 0.11
+      const osc = r.ctx.createOscillator()
+      const gain = r.ctx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.value = frequency
+      const hold = index === notes.length - 1 ? 0.7 : 0.14
+      gain.gain.setValueAtTime(0.0001, at)
+      gain.gain.exponentialRampToValueAtTime(0.16, at + 0.015)
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + hold)
+      osc.connect(gain).connect(r.out)
+      osc.start(at)
+      osc.stop(at + hold + 0.02)
+    })
+    // The chord under the last note.
+    const at = r.now + (notes.length - 1) * 0.11
+    for (const frequency of [523.25, 783.99]) {
+      const osc = r.ctx.createOscillator()
+      const gain = r.ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = frequency
+      gain.gain.setValueAtTime(0.0001, at)
+      gain.gain.exponentialRampToValueAtTime(0.09, at + 0.03)
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.8)
+      osc.connect(gain).connect(r.out)
+      osc.start(at)
+      osc.stop(at + 0.82)
+    }
+  }
+
   /** The floor scraping over a kerb: a short, bright grind. Call at most a few times a second. */
   scrape(level = 1): void {
     const r = this.ready()

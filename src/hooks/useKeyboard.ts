@@ -8,7 +8,7 @@ const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
 /**
  * Global shortcuts: Space installs next, E exploded view, L paint shop, D test drive, G race engineer,
- * R hero camera, 1 to 6 presets, M mute, Esc closes. On the track T opens the setup tab.
+ * B pit stop, R hero camera, 1 to 6 presets, M mute, Esc closes. On the track T opens the setup tab.
  */
 export function useKeyboard(): void {
   useEffect(() => {
@@ -36,6 +36,9 @@ export function useKeyboard(): void {
         else if (lower === 't') {
           if (state.engineer === 'setup') state.closeEngineer()
           else state.openEngineer('setup')
+        } else if (lower === 'b') {
+          if (state.engineer === 'pitstop') state.closeEngineer()
+          else state.openEngineer('pitstop')
         } else return
         markInteraction()
         return
@@ -79,6 +82,10 @@ export function useKeyboard(): void {
           break
         case 'g':
           state.toggleEngineer()
+          break
+        case 'b':
+          if (state.engineer === 'pitstop') state.closeEngineer()
+          else state.openEngineer('pitstop')
           break
         case 'escape':
           if (state.engineer !== null) state.closeEngineer()

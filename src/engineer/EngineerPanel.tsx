@@ -2,7 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
 import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { useWorkshop, type EngineerView } from '../state/store'
+import { BADGES } from '../state/badges'
 import '../styles/engineer.css'
+import { PitStopGame } from './PitStopGame'
 import { SetupPanel } from './SetupPanel'
 
 interface Tab {
@@ -12,7 +14,10 @@ interface Tab {
   needsDrive: boolean
 }
 
-const TABS: readonly Tab[] = [{ id: 'setup', label: 'Car setup', needsDrive: false }]
+const TABS: readonly Tab[] = [
+  { id: 'setup', label: 'Car setup', needsDrive: false },
+  { id: 'pitstop', label: 'Pit stop', needsDrive: false },
+]
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [tabindex="0"]'
 
@@ -46,6 +51,7 @@ function EngineerDialog({ view }: { view: EngineerView }) {
   const openEngineer = useWorkshop((state) => state.openEngineer)
   const closeEngineer = useWorkshop((state) => state.closeEngineer)
   const trackScene = useWorkshop((state) => state.trackScene)
+  const badges = useWorkshop((state) => state.badges)
   const titleId = useId()
   const root = useRef<HTMLDivElement>(null)
   const tabs = useRef<(HTMLButtonElement | null)[]>([])
@@ -118,6 +124,15 @@ function EngineerDialog({ view }: { view: EngineerView }) {
           </span>
           <h2 id={titleId}>{TABS.find((tab) => tab.id === view)?.label ?? 'Race engineer'}</h2>
         </div>
+        {badges.length > 0 && (
+          <ul className="badge-list" aria-label="Badges">
+            {badges.map((badge) => (
+              <li key={badge} className="badge" title={BADGES[badge].blurb}>
+                <span aria-hidden="true">★</span> {BADGES[badge].name}
+              </li>
+            ))}
+          </ul>
+        )}
         <button
           type="button"
           className="hud-btn"
@@ -153,6 +168,7 @@ function EngineerDialog({ view }: { view: EngineerView }) {
 
       <div className="engineer-body" role={TABS.length > 1 ? 'tabpanel' : undefined}>
         {view === 'setup' && <SetupPanel />}
+        {view === 'pitstop' && <PitStopGame />}
       </div>
     </motion.div>
   )
