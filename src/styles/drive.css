@@ -78,6 +78,83 @@
   opacity: 1;
 }
 
+/* Split delta at a sector boundary and the lap result, both in the centre band. */
+
+.drive-split,
+.drive-result {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.drive-split {
+  top: 38%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 30px;
+  color: #ffd3dc;
+  text-shadow: 0 0 16px rgba(255, 77, 109, 0.5);
+}
+
+.drive-split.faster {
+  color: #86efac;
+  text-shadow: 0 0 16px rgba(74, 222, 128, 0.5);
+}
+
+.drive-result {
+  top: 34%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 22px;
+  border: 1px solid var(--cyan-line);
+  background: rgba(5, 10, 18, 0.72);
+  box-shadow: 0 0 22px rgba(56, 231, 255, 0.25);
+}
+
+.drive-result-time {
+  font-size: 34px;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 0 16px rgba(56, 231, 255, 0.55);
+}
+
+.drive-result-note {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.drive-result.best {
+  border-color: #d8b4fe;
+  box-shadow: 0 0 26px rgba(192, 132, 252, 0.4);
+}
+
+.drive-result.best .drive-result-note {
+  color: #d8b4fe;
+}
+
+.drive-result.dirty {
+  border-color: var(--danger);
+  box-shadow: 0 0 18px rgba(255, 77, 109, 0.3);
+}
+
+.drive-result.dirty .drive-result-note {
+  color: #ffd3dc;
+}
+
+.drive-split.show,
+.drive-result.show {
+  opacity: 1;
+}
+
 /* Bottom row: minimap, dashboard, lap times. */
 
 .drive-bottom {
@@ -278,6 +355,49 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
+}
+
+.sector-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 4px 0 2px;
+  border-top: 1px solid rgba(56, 231, 255, 0.14);
+  border-bottom: 1px solid rgba(56, 231, 255, 0.14);
+}
+
+.sector {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.sector.live {
+  color: var(--text);
+}
+
+.sector.white {
+  color: #ffffff;
+}
+
+.sector.green {
+  color: #86efac;
+}
+
+.sector.purple {
+  color: #d8b4fe;
+}
+
+.sector.prev {
+  opacity: 0.45;
+}
+
+.sector.dirty {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 77, 109, 0.6);
 }
 
 .lap-time {

@@ -7,6 +7,7 @@ import '../styles/engineer.css'
 import { PitStopGame } from './PitStopGame'
 import { QuizPanel } from './QuizPanel'
 import { SetupPanel } from './SetupPanel'
+import { TimeTrialPanel } from './TimeTrialPanel'
 
 interface Tab {
   id: EngineerView
@@ -19,6 +20,7 @@ const TABS: readonly Tab[] = [
   { id: 'setup', label: 'Car setup', needsDrive: false },
   { id: 'pitstop', label: 'Pit stop', needsDrive: false },
   { id: 'quiz', label: 'Quiz', needsDrive: false },
+  { id: 'timetrial', label: 'Time trial', needsDrive: true },
 ]
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [tabindex="0"]'
@@ -175,6 +177,7 @@ function EngineerDialog({ view }: { view: EngineerView }) {
         {view === 'setup' && <SetupPanel />}
         {view === 'pitstop' && <PitStopGame />}
         {view === 'quiz' && <QuizPanel />}
+        {view === 'timetrial' && <TimeTrialPanel />}
       </div>
     </motion.div>
   )

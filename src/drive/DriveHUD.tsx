@@ -5,7 +5,18 @@ import { TYRES } from '../state/setup'
 import { useWorkshop } from '../state/store'
 import '../styles/drive.css'
 import { Brand } from '../ui/Brand'
-import { car, formatLap, laps, resetCar } from './session'
+import { useRecords } from './records'
+import {
+  car,
+  formatDelta,
+  formatLap,
+  formatSector,
+  laps,
+  resetCar,
+  SPLIT_SHOW_MS,
+  type LapResult,
+  type Split,
+} from './session'
 import { CIRCUIT, MINIMAP_HEIGHT, MINIMAP_PATH, MINIMAP_WIDTH, toMinimap } from './track'
 
 const REV_SEGMENTS = 20
@@ -24,9 +35,21 @@ interface SlowTelemetry {
   timing: boolean
   /** Tyre wear in whole percent, so the bar only re-renders when it moves. */
   wear: number
+  /** Which sector the car is in and the sectors done so far this lap. */
+  sector: number
+  sectors: [number | null, number | null, number | null]
+  lastSectors: readonly [number, number, number] | null
+  dirty: boolean
+  /** The last lap's result, while its flash is showing. */
+  result: LapResult | null
+  /** The latest split, while it is showing. */
+  split: Split | null
 }
 
-const readSlow = (): SlowTelemetry => ({
+/** How long the lap result stays up. */
+const RESULT_SHOW_MS = 4200
+
+const readSlow = (now: number): SlowTelemetry => ({
   lap: laps.lap,
   lastMs: laps.lastMs,
   bestMs: laps.bestMs,
@@ -35,6 +58,12 @@ const readSlow = (): SlowTelemetry => ({
   scraping: car.bottoming > 0.35,
   timing: laps.startedAt !== null,
   wear: Math.round(car.tyreWear * 100),
+  sector: laps.sector,
+  sectors: laps.sectors,
+  lastSectors: laps.lastSectors,
+  dirty: laps.dirty,
+  result: laps.result && now - laps.result.at < RESULT_SHOW_MS ? laps.result : null,
+  split: laps.split && now - laps.split.at < SPLIT_SHOW_MS ? laps.split : null,
 })
 
 const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
@@ -45,7 +74,14 @@ const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
   a.offTrack === b.offTrack &&
   a.scraping === b.scraping &&
   a.timing === b.timing &&
-  a.wear === b.wear
+  a.wear === b.wear &&
+  a.sector === b.sector &&
+  a.sectors[0] === b.sectors[0] &&
+  a.sectors[1] === b.sectors[1] &&
+  a.lastSectors === b.lastSectors &&
+  a.dirty === b.dirty &&
+  a.result === b.result &&
+  a.split === b.split
 
 /** The circuit outline with the start line marked and a dot for the car. */
 function Minimap({ dot }: { dot: React.RefObject<SVGCircleElement | null> }) {
@@ -85,12 +121,15 @@ export default function DriveHUD() {
   const openEngineer = useWorkshop((state) => state.openEngineer)
   const compound = useWorkshop((state) => state.setup.tyre)
   const tyre = TYRES[compound]
+  const bestSectors = useRecords((state) => state.bestSectors)
+  const bestLap = useRecords((state) => state.bestLap)
   const speedRef = useRef<HTMLSpanElement>(null)
   const gearRef = useRef<HTMLSpanElement>(null)
   const revsRef = useRef<HTMLDivElement>(null)
   const timeRef = useRef<HTMLSpanElement>(null)
+  const sectorRef = useRef<HTMLSpanElement>(null)
   const dotRef = useRef<SVGCircleElement>(null)
-  const [slow, setSlow] = useState<SlowTelemetry>(readSlow)
+  const [slow, setSlow] = useState<SlowTelemetry>(() => readSlow(performance.now()))
 
   // One animation frame loop writes the fast readouts straight into the DOM.
   useEffect(() => {
@@ -107,9 +146,17 @@ export default function DriveHUD() {
           segments[i].classList.toggle('lit', i < lit)
         }
       }
+      const now = performance.now()
       if (timeRef.current) {
         timeRef.current.textContent =
-          laps.startedAt === null ? formatLap(null) : formatLap(performance.now() - laps.startedAt)
+          laps.startedAt === null ? formatLap(null) : formatLap(now - laps.startedAt)
+      }
+      if (sectorRef.current) {
+        // The sector in progress ticks live; done sectors are rendered from state.
+        sectorRef.current.textContent =
+          laps.startedAt === null
+            ? formatSector(null)
+            : formatSector(now - (laps.sectorStartedAt ?? laps.startedAt))
       }
       if (dotRef.current) {
         const [u, v] = toMinimap(car.x, car.z)
@@ -117,7 +164,7 @@ export default function DriveHUD() {
         dotRef.current.setAttribute('cy', v.toFixed(1))
       }
       setSlow((previous) => {
-        const next = readSlow()
+        const next = readSlow(now)
         return sameSlow(previous, next) ? previous : next
       })
       frame = requestAnimationFrame(tick)
@@ -127,6 +174,15 @@ export default function DriveHUD() {
   }, [])
 
   const lapLabel = slow.lap === 0 ? 'Out lap' : `Lap ${slow.lap}`
+  const result = slow.result
+  const split = slow.split
+  /** Colour class for a finished sector of the current lap. */
+  const sectorTone = (i: number, ms: number | null): string => {
+    if (ms === null) return ''
+    if (bestSectors[i] !== null && ms <= (bestSectors[i] as number)) return 'purple'
+    if (bestLap && ms < bestLap.sectors[i]) return 'green'
+    return 'white'
+  }
 
   return (
     <motion.div
@@ -200,6 +256,36 @@ export default function DriveHUD() {
         <div className={`drive-hint ${slow.moved ? '' : 'show'}`} aria-hidden={slow.moved}>
           <kbd>W</kbd> or <kbd>↑</kbd> to drive · <kbd>A</kbd> <kbd>D</kbd> to steer
         </div>
+        <div
+          className={`drive-split ${split && !result ? 'show' : ''} ${split && split.delta < 0 ? 'faster' : 'slower'}`}
+          aria-hidden={!split}
+        >
+          {split ? (
+            <>
+              <span className="label">S{split.sector + 1}</span>
+              {formatDelta(split.delta)}
+            </>
+          ) : null}
+        </div>
+        <div
+          className={`drive-result ${result ? 'show' : ''} ${result?.newBest ? 'best' : ''} ${result?.dirty ? 'dirty' : ''}`}
+          role="status"
+        >
+          {result ? (
+            <>
+              <span className="drive-result-time">{formatLap(result.ms)}</span>
+              <span className="drive-result-note">
+                {result.dirty
+                  ? 'Track limits: lap not counted'
+                  : result.newBest
+                    ? 'New best lap'
+                    : result.position
+                      ? `P${result.position} on the board`
+                      : 'Lap complete'}
+              </span>
+            </>
+          ) : null}
+        </div>
       </div>
 
       <footer className="drive-bottom">
@@ -249,8 +335,36 @@ export default function DriveHUD() {
               {formatLap(null)}
             </span>
           </div>
+          <div className="sector-row" aria-label="Sectors">
+            {[0, 1, 2].map((i) => {
+              const live = slow.timing && slow.sector === i
+              const done = slow.sectors[i]
+              // Until this lap reaches a sector, the previous lap's time for it stays up, dimmed.
+              const previous = done === null && !live ? (slow.lastSectors?.[i] ?? null) : null
+              return (
+                <span
+                  key={i}
+                  className={`sector ${live ? 'live' : ''} ${sectorTone(i, done)} ${
+                    previous !== null ? 'prev' : ''
+                  } ${slow.dirty && done !== null ? 'dirty' : ''}`}
+                >
+                  <span className="label">S{i + 1}</span>
+                  {live ? (
+                    // Its own key: the live span is written by the frame loop, so React must not reuse it.
+                    <span key="live" ref={sectorRef}>
+                      {formatSector(null)}
+                    </span>
+                  ) : (
+                    <span key="done">{formatSector(done ?? previous)}</span>
+                  )}
+                </span>
+              )
+            })}
+          </div>
           <div className="lap-row" aria-live="polite">
-            <span className="label">Last</span>
+            <span className="label">
+              Last{slow.lastMs !== null && laps.result?.dirty ? ' *' : ''}
+            </span>
             <span className="lap-time">{formatLap(slow.lastMs)}</span>
           </div>
           <div className="lap-row">

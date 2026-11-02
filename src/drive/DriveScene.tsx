@@ -4,6 +4,8 @@ import { StudioEnvironment } from '../scene/Lighting'
 import { ChaseCamera } from './ChaseCamera'
 import { Circuit } from './Circuit'
 import { DriveCar } from './DriveCar'
+import { GhostCar } from './GhostCar'
+import { useRecords } from './records'
 import { car, laps, resetCar } from './session'
 import { CIRCUIT } from './track'
 
@@ -20,7 +22,7 @@ function TrackLighting() {
 /** The test-drive scene, mounted in place of the workshop while `trackScene` is set. */
 export default function DriveScene() {
   useEffect(() => {
-    exposeDriveHandle({ car, laps, resetCar, track: CIRCUIT })
+    exposeDriveHandle({ car, laps, resetCar, track: CIRCUIT, records: useRecords })
     return () => exposeDriveHandle(undefined)
   }, [])
 
@@ -29,6 +31,7 @@ export default function DriveScene() {
       <TrackLighting />
       <Circuit />
       <DriveCar />
+      <GhostCar />
       <ChaseCamera />
     </group>
   )
