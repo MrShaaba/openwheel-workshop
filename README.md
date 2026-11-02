@@ -58,6 +58,16 @@ what you have learned, chase your own ghost round the circuit and photograph the
   lap under thirty seconds. Laps that leave the track are timed but not counted.
 - **Photo mode.** Press `P` in the workshop or on the track: a free camera, depth of field focused on
   the car or at a chosen distance, a turntable, hidden UI, and a PNG download of the frame.
+- **Two circuits.** The flat 715 m circuit and the 1020 m Ridge circuit with 17 m of climb: a
+  climbing esses, a blind crest where the tyres go light at speed, a downhill hairpin. Gravity works
+  on the slopes, the car tilts with the ground, and records, ghosts and leaderboards are kept per
+  circuit.
+- **Guided tour.** Press `N` and the workshop builds the car for you, part by part, with the camera
+  framing each one and a spoken explanation from its card (through the browser's own speech, so no
+  audio files), captions on screen, a chapter list and a choice of voice and pace.
+- **Setup sheets.** Name and save setups per circuit, load them back, compare up to three against
+  the car as it is now, see the best lap each has set, and pass a setup on as a short code, a link
+  or a JSON file.
 
 ![Exploded View](docs/exploded.png)
 
@@ -70,6 +80,10 @@ what you have learned, chase your own ghost round the circuit and photograph the
 ![Pit-stop challenge](docs/pit-stop.png)
 
 ![Time trial ghost](docs/time-trial.png)
+
+![Ridge circuit](docs/ridge-circuit.png)
+
+![Guided tour](docs/tour.png)
 
 ## Who it is for
 
@@ -150,10 +164,10 @@ With the test drive enabled:
 | A D / Left Right      | Steer                                             |
 | Space                 | Handbrake                                         |
 | R                     | Put the car back on the grid                      |
-| T                     | Car setup (the car waits while it is open)        |
+| T                     | Car setup and setup sheets (the car waits)        |
 | B                     | Box: the pit-stop challenge, which fits new tyres |
 | P                     | Photo mode around the paused car                  |
-| G                     | Race engineer, including the time-trial board     |
+| G                     | Race engineer: time-trial board, circuit switcher |
 | Esc                   | Close a panel, or back to the workshop            |
 
 With a gamepad (standard mapping; the browser reports it after the first button press):
@@ -183,12 +197,15 @@ the same way.
 
 ## Test drive
 
-The circuit in `src/drive/track.ts` is straights joined by circular fillets with a radius per corner,
-sampled every metre, so the tightest radius is guaranteed by construction. The road, edge lines,
-kerbs and posts are built from those samples; the same samples give the car its nearest point on the
-track for run-off detection and lap progress, and the minimap path. The car is the workshop's own part
-models and livery, driven by a kinematic bicycle model with a speed-dependent steering lock, a grip
-limit that turns into understeer, drag, run-off that saps speed and a six-speed gearbox that only
+Each circuit in `src/drive/track.ts` is straights joined by circular fillets with a radius per
+corner, sampled every metre, so the tightest radius is guaranteed by construction, plus a height
+profile along the lap smoothed by a periodic spline, so every sample has a height, a grade and a
+curvature of the height. The road, edge lines, kerbs, posts and (where the road is raised) an
+embankment with contour lines are built from those samples; the same samples give the car its
+nearest point on the track for run-off detection, lap progress, the ground under it and the minimap
+path. The car is the workshop's own part models and livery, driven by a kinematic bicycle model with
+a speed-dependent steering lock, a grip limit that turns into understeer, drag, gravity along the
+slope, tyres that go light over a crest, run-off that saps speed and a six-speed gearbox that only
 exists to give the engine note something to climb. The drive scene and its HUD load as their own
 chunk, fetched when the car is complete.
 
@@ -212,6 +229,23 @@ the track is marked and not recorded. Photo mode adds a depth-of-field pass to t
 while it is on, focused on a world point so the near and far planes of the two scenes do not matter,
 and reads the PNG straight from the drawing buffer after the composer has drawn.
 
+Setup sheets (`src/state/sheets.ts`) are saved with the build, twelve at most. A sheet remembers the
+quickest clean lap set with exactly its setup on its circuit, so sheets can be compared by lap time as
+well as by the predicted numbers. A setup also travels as the code `f7r8h2b6s` (front wing, rear
+wing, ride height, brake bias, tyre), which the page accepts in its URL hash (`#setup=f7r8h2b6s`),
+and the sheets export to a JSON file that is sanitised field by field on import.
+
+## Guided tour
+
+The tour (`src/tour/`) is a script built from the info cards (a welcome, one introduction per stage,
+a chapter per part with its title, role and first engineering note, and a sign-off) played by a
+small engine: it frames the part, speaks the text through `speechSynthesis` with the chosen English
+voice and pace, shows the caption, and moves on after a breath. With sound off, no voices or a
+browser that never starts speaking, the captions pace themselves at reading speed instead. When the
+build has not reached a chapter's part, everything before it in build order is placed at once and the
+part itself flies in, so the car always matches what is being said; the last part fires the
+completion sequence. The player is lazy-loaded on first use.
+
 ## Performance
 
 The scene targets 60 fps on a modern laptop. Pixel ratio adapts between 1 and 1.5 from a
@@ -234,6 +268,7 @@ src/
   drive/     test drive (flagged): circuit, physics, tuning, input, gamepad, ghost, records, HUD
   engineer/  race engineer panel: car setup, pit-stop challenge, quiz, time-trial leaderboard
   photo/     photo mode: settings, in-canvas rig and capture, toolbar
+  tour/      guided tour: script from the cards, speech wrapper, player and narration engine
 ```
 
 Part metadata has one source of truth in `src/parts/registry.ts`. Adding a part takes one entry
@@ -244,9 +279,10 @@ there, one geometry function in `src/parts/geometry/` and one card in `src/parts
 Phases 1 to 6 are built: workshop, Guided and Free Build, the materialise shader, sound, info cards,
 Inspect, Exploded View, Assemble All, the completion sequence, save and resume, the paint shop, the
 tablet layout, the accessibility and performance passes, the flagged test drive, and the Race
-engineer (car setup, pit stop, quiz, time trial, photo mode, gamepad). The next phase is planned in
-[ROADMAP.md](ROADMAP.md): a GLB parts library, a second circuit with elevation, a narrated build
-tour, car eras as original designs, a race weekend, telemetry and more.
+engineer (car setup, pit stop, quiz, time trial, photo mode, gamepad). Of Phase 7, the Ridge circuit
+with elevation, the guided tour and the setup sheets are built. The rest is planned in
+[ROADMAP.md](ROADMAP.md): a GLB parts library, car eras as original designs, a race weekend,
+telemetry, sound and feel, and an accessibility and performance pass.
 
 ## License
 

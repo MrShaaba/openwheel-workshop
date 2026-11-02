@@ -23,12 +23,14 @@ Phases 1 to 6 are built and verified in a real browser. In short:
   local top-ten leaderboard filed under a driver tag, and the Hot lap badge. Photo mode with a free
   camera, depth of field, a turntable, hidden UI and a PNG download. Gamepad driving with analogue
   triggers and stick.
+- **Phase 7, first three items (2026-11-02).** The Ridge circuit with elevation and records per
+  circuit (7.2), the narrated build tour (7.3) and setup sheets (7.7), built as planned below.
 
 ## Phase 7: the next 20-plus hours
 
 Concrete items, each with the work it breaks into, how it is accepted, and an honest estimate. No
 real team, driver or sponsor names anywhere: every design, era and circuit is original. Total: about
-38 hours.
+38 hours, of which 7.2, 7.3 and 7.7 (12 hours) are built; about 26 hours remain.
 
 ### 7.1 GLB parts library (6 h)
 
@@ -55,45 +57,49 @@ Accepted when: both exported parts load from GLB with identical placement to the
 versions, materialise and take the livery, the inventory ring shows them as holograms, and the
 build is unchanged in size when no GLB is referenced.
 
-### 7.2 Second circuit with elevation (5 h)
+### 7.2 Second circuit with elevation (5 h, built)
 
 A second original circuit chosen from the Time trial tab, with gentle hills so the car is not always
 on a plane.
 
-- [ ] Generalise `track.ts` into `circuits.ts`: a `CircuitDefinition` (corners, start fraction,
-      width, kerb threshold, a height function over lap distance) and `buildCircuit(definition)`
-      producing points, tangents, curvature and now heights; `CIRCUIT` becomes the selected one. (1.5 h)
-- [ ] "Ridge" circuit: longer main straight, a climbing esses section, a blind crest into a downhill
-      hairpin, 900 to 1000 m, with its own minimap and grid pose. Heights capped at a gradient the
-      arcade model handles without leaving the ground. (1 h)
-- [ ] Physics on slopes: longitudinal gravity term from the local gradient, the car's `y` and pitch
-      from the surface, and the chase camera following the height. (1.5 h)
-- [ ] Records per circuit: the time-trial store keys best lap, sectors, leaderboard and ghost by
-      circuit id; the panel shows a circuit switcher and the HUD names the circuit. (1 h)
+- [x] Generalise `track.ts`: a `CircuitDefinition` (corners, start fraction, arena margin, a height
+      profile over the lap, an embankment width) and `buildCircuit(definition)` producing points,
+      tangents, curvature, heights, grades and height curvature; `getCircuit(id)` builds on first
+      use and the store's `circuit` selects one. (1.5 h)
+- [x] "Ridge" circuit: a long main straight, a climbing esses section, a blind crest 15 m up into a
+      downhill hairpin, 1020 m, with its own minimap and grid pose. Grades stay under 9%. (1 h)
+- [x] Physics on slopes: gravity along the gradient, the car's `y`, pitch and roll from the ground
+      under it, tyres that go light over a crest, the chase camera following the height and staying
+      clear of the ground behind the car, the ghost on the slope, an embankment with contour lines
+      where the road is raised. (1.5 h)
+- [x] Records per circuit: the time-trial store keys best lap, sectors, leaderboard and ghost by
+      circuit id (storage version 2 migrates the old shape); the panel shows a circuit switcher with
+      thumbnails and the HUD names the circuit and its climb. (1 h)
 
-Accepted when: both circuits lap cleanly with the in-page autopilot, the ghost replays on the right
-circuit, and switching circuits keeps each leaderboard intact.
+Accepted: both circuits lap cleanly with the in-page autopilot (Ridge in about 39 s), the ghost
+replays on the right circuit, and switching circuits keeps each leaderboard intact.
 
-### 7.3 Guided narrated build tour (5 h)
+### 7.3 Guided narrated build tour (5 h, built)
 
 A sit-back tour of the car for a child who would rather listen than read: every part in order, the
 camera framing it, a short spoken explanation, captions on screen.
 
-- [ ] Tour script generated from the info cards (role plus one fact per part, a one-line intro per
-      stage) in `src/tour/script.ts`, with a plain-language pass over the longer sentences. (1 h)
-- [ ] Narration through the Web Speech API (`speechSynthesis`), so no audio files: voice picker
-      limited to the browser's English voices, rate and volume controls, and a caption track that
-      stays in sync by starting each caption on the utterance's `start` event. Falls back to
-      captions only where speech is unavailable. (1.5 h)
-- [ ] Tour player in `src/tour/TourPlayer.tsx`: play, pause, next, previous, a chapter list by
-      stage, auto-advance, and a progress bar; the camera uses the existing `focus` request per part
-      and the Assemble All director to install the part as it is introduced when the build is
-      incomplete. `Esc` stops the tour. (2 h)
-- [ ] Accessibility: captions as a live region, the player fully keyboard operable, reduced motion
+- [x] Tour script generated from the info cards (title, role and one fact per part, a plain
+      introduction per stage, a welcome and a sign-off) in `src/tour/script.ts`. (1 h)
+- [x] Narration through the Web Speech API (`speechSynthesis`), so no audio files: a voice picker
+      limited to the browser's English voices, three paces, and captions that follow the utterance.
+      Captions pace themselves at reading speed when sound is off, no voices exist or the browser
+      never starts speaking. (1.5 h)
+- [x] Tour player in `src/tour/TourPlayer.tsx`: play, pause, next, previous, a chapter list by
+      stage, auto-advance and a progress bar; the camera uses the existing `focus` request per part
+      and the stage presets; when the build has not reached a chapter's part, everything before it
+      is placed at once and the part flies in. `N` starts, `Esc` stops. (2 h)
+- [x] Accessibility: captions as a live region, the player fully keyboard operable, reduced motion
       skips the camera flights. (0.5 h)
 
-Accepted when: a complete tour runs unattended from an empty platform to the finished car with
-narration and captions in sync, and can be paused and resumed at any chapter.
+Accepted: a complete tour runs unattended from an empty platform to the finished car (and its
+completion sequence) with narration and captions in sync, and can be paused and resumed at any
+chapter.
 
 ### 7.4 Car eras as original designs (7 h)
 
@@ -132,11 +138,12 @@ drives, and the quiz draws questions from the era's own cards.
 - [ ] Plain-language notes generated from the traces: "You braked 18 m earlier into turn 3 than
       your best lap." (0.5 h)
 
-### 7.7 Setup sheets and sharing (2 h)
+### 7.7 Setup sheets and sharing (2 h, built)
 
-- [ ] Save named setups per circuit, with the predicted numbers alongside. (1 h)
-- [ ] Export and import a setup as JSON and as a short code in the URL hash, sanitised on the way
-      in. (1 h)
+- [x] Save named setups per circuit, load, rename and delete them, compare up to three against the
+      car as it is now (settings, predicted numbers and the best clean lap each sheet has set). (1 h)
+- [x] Export and import the sheets as JSON, and carry one setup as a short code (`f7r8h2b6s`) or a
+      link with the code in the URL hash, sanitised on the way in. (1 h)
 
 ### 7.8 Sound and feel (2 h)
 
