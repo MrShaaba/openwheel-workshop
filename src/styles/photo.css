@@ -1,0 +1,159 @@
+/* ---------- Photo mode (loaded with the photo chunk) ---------- */
+
+.photo {
+  position: absolute;
+  inset: auto 0 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px;
+}
+
+.photo-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.photo-tip {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--sans);
+}
+
+.photo-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  align-items: end;
+  gap: 18px;
+  width: min(100%, 980px);
+  padding: 12px 16px 14px;
+}
+
+.photo-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.photo-control-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  min-height: 24px;
+}
+
+.photo-value {
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-btn.tiny {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.photo-control input[type='range'] {
+  --fill: 50%;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.photo-control input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--cyan) 0 var(--fill),
+    rgba(56, 231, 255, 0.18) var(--fill) 100%
+  );
+  border-radius: 2px;
+}
+
+.photo-control input[type='range']::-moz-range-track {
+  height: 4px;
+  background: rgba(56, 231, 255, 0.18);
+  border-radius: 2px;
+}
+
+.photo-control input[type='range']::-moz-range-progress {
+  height: 4px;
+  background: var(--cyan);
+}
+
+.photo-control input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 10px rgba(56, 231, 255, 0.6);
+}
+
+.photo-control input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--cyan);
+}
+
+.photo-actions {
+  align-self: center;
+}
+
+.photo-hidden-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+}
+
+.photo-hidden-hint kbd {
+  font: inherit;
+  color: var(--cyan);
+}
+
+@media (max-width: 1100px) {
+  .photo-bar {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .photo-actions {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 900px) {
+  .photo {
+    padding: 0 14px;
+    inset: auto 0 12px;
+  }
+  .photo-bar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .photo-tip {
+    display: none;
+  }
+}

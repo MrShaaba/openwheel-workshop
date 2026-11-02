@@ -1,3 +1,4 @@
+import { preloadPhoto } from '../photo/lazy'
 import { CAMERA_PRESETS, useWorkshop, type CameraPreset } from '../state/store'
 
 const LABELS: Record<CameraPreset, string> = {
@@ -17,6 +18,7 @@ export function CameraPresets() {
   const canExplode = useWorkshop(
     (state) => state.installed.length > 0 && !state.installing && !state.assembling,
   )
+  const togglePhoto = useWorkshop((state) => state.togglePhoto)
 
   return (
     <div className="camera-presets">
@@ -46,6 +48,18 @@ export function CameraPresets() {
         >
           Exploded view
           <kbd aria-hidden="true">E</kbd>
+        </button>
+        <button
+          type="button"
+          className="hud-btn"
+          onClick={togglePhoto}
+          onPointerEnter={preloadPhoto}
+          onFocus={preloadPhoto}
+          aria-keyshortcuts="P"
+          disabled={!canExplode}
+        >
+          Photo
+          <kbd aria-hidden="true">P</kbd>
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useState } from 'react'
 import { exposeDebugHandle } from '../debug'
 import { DriveScene } from '../drive/lazy'
+import { PhotoRig } from '../photo/PhotoRig'
 import { useWorkshop } from '../state/store'
 import { AssemblyDirector } from './AssemblyDirector'
 import { CameraRig } from './CameraRig'
@@ -35,6 +36,7 @@ export function WorkshopCanvas() {
   const [dpr, setDpr] = useState(() => Math.min(window.devicePixelRatio || 1, MAX_DPR))
   const ceiling = Math.min(window.devicePixelRatio || 1, MAX_DPR)
   const trackScene = useWorkshop((state) => state.trackScene)
+  const photoMode = useWorkshop((state) => state.photoMode)
 
   return (
     <Canvas
@@ -74,6 +76,7 @@ export function WorkshopCanvas() {
           </>
         )}
         <AssemblyDirector />
+        {photoMode ? <PhotoRig /> : null}
         <Effects />
         <ReadySignal />
       </Suspense>

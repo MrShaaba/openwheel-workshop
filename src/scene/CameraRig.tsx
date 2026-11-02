@@ -99,6 +99,7 @@ export function CameraRig() {
   const aspect = useThree((state) => state.size.width / state.size.height)
   const aspectRef = useRef(aspect)
   const request = useWorkshop((state) => state.cameraRequest)
+  const photoMode = useWorkshop((state) => state.photoMode)
 
   useEffect(() => {
     aspectRef.current = aspect
@@ -188,11 +189,12 @@ export function CameraRig() {
       dampingFactor={0.08}
       rotateSpeed={0.55}
       zoomSpeed={0.7}
-      enablePan={false}
-      minDistance={1.2}
-      maxDistance={17}
-      minPolarAngle={0.1}
-      maxPolarAngle={Math.PI / 2 - 0.035}
+      // Photo mode loosens the leash: closer, further, lower, and panning on the right button.
+      enablePan={photoMode}
+      minDistance={photoMode ? 0.5 : 1.2}
+      maxDistance={photoMode ? 30 : 17}
+      minPolarAngle={photoMode ? 0.02 : 0.1}
+      maxPolarAngle={Math.PI / 2 - (photoMode ? 0.01 : 0.035)}
       target={toVector3(HERO_POSE.target as Vec3)}
       onStart={markInteraction}
     />

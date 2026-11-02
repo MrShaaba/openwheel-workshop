@@ -4,6 +4,8 @@ import { DriveTransition } from '../drive/DriveTransition'
 import { DriveHUD } from '../drive/lazy'
 import { EngineerPanel } from '../engineer/lazy'
 import { TEST_DRIVE_ENABLED } from '../lib/flags'
+import { PhotoToolbar } from '../photo/lazy'
+import { usePhoto } from '../photo/photoState'
 import { useWorkshop } from '../state/store'
 import '../styles/hud.css'
 import { Brand } from './Brand'
@@ -23,6 +25,8 @@ export function HUD() {
   const ready = useWorkshop((state) => state.ready)
   const trackScene = useWorkshop((state) => state.trackScene)
   const engineerOpen = useWorkshop((state) => state.engineer !== null)
+  const photoMode = useWorkshop((state) => state.photoMode)
+  const uiHidden = usePhoto((state) => state.hideUi) && photoMode
   // Once opened, the panel stays mounted so its exit animation can play.
   const [engineerSeen, setEngineerSeen] = useState(false)
   if (engineerOpen && !engineerSeen) setEngineerSeen(true)
@@ -30,9 +34,16 @@ export function HUD() {
   const [booted, setBooted] = useState(false)
 
   return (
-    <div className="hud">
-      <a className="skip-link" href={trackScene ? '#drive-controls' : '#objective'}>
-        {trackScene ? 'Skip to drive controls' : 'Skip to build controls'}
+    <div className={`hud ${uiHidden ? 'ui-hidden' : ''}`}>
+      <a
+        className="skip-link"
+        href={photoMode ? '#photo-controls' : trackScene ? '#drive-controls' : '#objective'}
+      >
+        {photoMode
+          ? 'Skip to photo controls'
+          : trackScene
+            ? 'Skip to drive controls'
+            : 'Skip to build controls'}
       </a>
       <div className="hud-scanlines" aria-hidden="true" />
       <div className="hud-sweep" aria-hidden="true" />
@@ -41,7 +52,11 @@ export function HUD() {
       <span className="hud-corner bl" aria-hidden="true" />
       <span className="hud-corner br" aria-hidden="true" />
 
-      {trackScene ? (
+      {photoMode ? (
+        <Suspense fallback={null}>
+          <PhotoToolbar />
+        </Suspense>
+      ) : trackScene ? (
         <Suspense fallback={null}>
           <DriveHUD />
         </Suspense>
@@ -78,7 +93,7 @@ export function HUD() {
         </motion.div>
       )}
 
-      {trackScene ? null : <HoverLabel />}
+      {trackScene || photoMode ? null : <HoverLabel />}
       {engineerSeen && (
         <Suspense fallback={null}>
           <EngineerPanel />

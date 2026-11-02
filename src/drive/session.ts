@@ -114,7 +114,7 @@ export function formatDelta(ms: number): string {
 /** The car stands still while a panel or photo mode has the screen. */
 export function drivePaused(): boolean {
   const state = useWorkshop.getState()
-  return state.engineer !== null
+  return state.engineer !== null || state.photoMode
 }
 
 /** A fresh set of the current compound. */

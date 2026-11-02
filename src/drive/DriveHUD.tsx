@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { preloadEngineer } from '../engineer/lazy'
+import { preloadPhoto } from '../photo/lazy'
 import { TYRES } from '../state/setup'
 import { useWorkshop } from '../state/store'
 import '../styles/drive.css'
@@ -119,6 +120,7 @@ export default function DriveHUD() {
   const muted = useWorkshop((state) => state.muted)
   const toggleMute = useWorkshop((state) => state.toggleMute)
   const openEngineer = useWorkshop((state) => state.openEngineer)
+  const togglePhoto = useWorkshop((state) => state.togglePhoto)
   const compound = useWorkshop((state) => state.setup.tyre)
   const tyre = TYRES[compound]
   const bestSectors = useRecords((state) => state.bestSectors)
@@ -222,6 +224,17 @@ export default function DriveHUD() {
           >
             Box
             <kbd aria-hidden="true">B</kbd>
+          </button>
+          <button
+            type="button"
+            className="hud-btn"
+            onClick={togglePhoto}
+            onPointerEnter={preloadPhoto}
+            onFocus={preloadPhoto}
+            aria-keyshortcuts="P"
+          >
+            Photo
+            <kbd aria-hidden="true">P</kbd>
           </button>
           <button
             type="button"
@@ -400,6 +413,9 @@ export default function DriveHUD() {
         </span>
         <span>
           <kbd>B</kbd> pit stop
+        </span>
+        <span>
+          <kbd>P</kbd> photo
         </span>
         <span>
           <kbd>G</kbd> engineer

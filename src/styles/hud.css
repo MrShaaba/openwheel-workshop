@@ -608,6 +608,11 @@
   }
 }
 
+/* Photo mode with the controls hidden: only its own hint stays. */
+.hud.ui-hidden > :not(.photo-hidden-hint) {
+  display: none;
+}
+
 /* ---------- Scene fade (workshop to track and back) ---------- */
 
 .scene-fade {

@@ -6,6 +6,7 @@ import { clamp01, damp } from '../lib/math'
 import { getPartModel } from '../parts/model'
 import { PART_BY_ID, PARTS } from '../parts/registry'
 import type { PartId } from '../parts/types'
+import { setCarFocus } from '../photo/photoState'
 import { getLiveryUniforms } from '../scene/liveryTextures'
 import { createFinishMaterial, FINISHES } from '../scene/materials'
 import { applyMaterialize, createMaterializeUniforms } from '../shaders/materialize'
@@ -97,8 +98,14 @@ export function DriveCar() {
     rainLight.current = materials.find((material) => material.emissive.getHex() !== 0) ?? null
   }, [])
 
-  // The engine note lives as long as the car is on the track.
-  useEffect(() => () => synth.engineStop(), [])
+  // The engine note lives as long as the car is on the track; photo mode focuses on the workshop car again after.
+  useEffect(
+    () => () => {
+      synth.engineStop()
+      setCarFocus(0, 0.55, 0.2)
+    },
+    [],
+  )
 
   useFrame(({ clock }, dt) => {
     // The setup is read every frame but only turned into coefficients when it changes.
@@ -144,6 +151,7 @@ export function DriveCar() {
     }
     node.position.set(car.x, 0, car.z)
     node.rotation.y = car.heading
+    setCarFocus(car.x, 0.5, car.z)
     if (chassis.current) {
       chassis.current.rotation.set(car.pitch, 0, car.roll)
       // The body rides on its suspension: higher with the setting, lower as the floor bottoms out.

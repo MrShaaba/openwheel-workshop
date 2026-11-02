@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { installableIds, nextGuidedPart } from '../parts/graph'
+import { usePhoto } from '../photo/photoState'
 import { markInteraction } from '../scene/interaction'
 import { CAMERA_PRESETS, useWorkshop } from '../state/store'
 
@@ -8,7 +9,8 @@ const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
 /**
  * Global shortcuts: Space installs next, E exploded view, L paint shop, D test drive, G race engineer,
- * B pit stop, Q quiz, R hero camera, 1 to 6 presets, M mute, Esc closes. On the track T opens the setup tab.
+ * B pit stop, Q quiz, P photo mode, R hero camera, 1 to 6 presets, M mute, Esc closes. On the track T
+ * opens the setup tab. Photo mode keeps only Esc, H, Enter and M.
  */
 export function useKeyboard(): void {
   useEffect(() => {
@@ -24,6 +26,20 @@ export function useKeyboard(): void {
 
       const state = useWorkshop.getState()
       const key = event.key
+
+      if (state.photoMode) {
+        // Photo mode keeps a short list: leave, hide the controls, save, mute.
+        const lower = key.toLowerCase()
+        if (key === 'Escape' || lower === 'p') state.closePhoto()
+        else if (lower === 'h') usePhoto.getState().toggleUi()
+        else if (key === 'Enter') {
+          if (event.target instanceof HTMLButtonElement) return
+          usePhoto.getState().requestCapture()
+        } else if (lower === 'm') state.toggleMute()
+        else return
+        markInteraction()
+        return
+      }
 
       if (state.driving) {
         // The track owns the keyboard (src/drive/input.ts); only the panels, leaving and mute stay global.
@@ -42,7 +58,8 @@ export function useKeyboard(): void {
         } else if (lower === 'q') {
           if (state.engineer === 'quiz') state.closeEngineer()
           else state.openEngineer('quiz')
-        } else return
+        } else if (lower === 'p') state.togglePhoto()
+        else return
         markInteraction()
         return
       }
@@ -93,6 +110,9 @@ export function useKeyboard(): void {
         case 'q':
           if (state.engineer === 'quiz') state.closeEngineer()
           else state.openEngineer('quiz')
+          break
+        case 'p':
+          state.togglePhoto()
           break
         case 'escape':
           if (state.engineer !== null) state.closeEngineer()

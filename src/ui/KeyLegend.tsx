@@ -27,6 +27,9 @@ export function KeyLegend() {
         <kbd>Q</kbd> quiz
       </span>
       <span>
+        <kbd>P</kbd> photo
+      </span>
+      <span>
         <kbd>1-6</kbd> views
       </span>
       <span>

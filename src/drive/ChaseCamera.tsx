@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { PerspectiveCamera, Vector3 } from 'three'
 import { clamp, clamp01, damp, dampAngle, lerp } from '../lib/math'
+import { useWorkshop } from '../state/store'
 import { MAX_SPEED } from './physics'
 import { car } from './session'
 
@@ -49,6 +50,8 @@ export function ChaseCamera() {
   }, [camera])
 
   useFrame((_, dt) => {
+    // Photo mode has its own orbit controls; the chase picks up again from wherever they left off.
+    if (useWorkshop.getState().photoMode) return
     const speed01 = clamp01(Math.abs(car.speed) / MAX_SPEED)
     const snap = !snapped.current
     snapped.current = true

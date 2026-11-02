@@ -91,6 +91,8 @@ export interface WorkshopState extends PersistedState {
   trackScene: boolean
   /** Which Race engineer tab is open, or null for none. Opening one pauses the car on the track. */
   engineer: EngineerView | null
+  /** Photo mode: free camera, depth of field, PNG download. Pauses the car on the track. */
+  photoMode: boolean
 
   // Actions
   setReady: () => void
@@ -132,6 +134,9 @@ export interface WorkshopState extends PersistedState {
   closeEngineer: () => void
   /** `G`: opens the last tab, or closes the panel. */
   toggleEngineer: () => void
+  /** `P`: photo mode on or off; refused with a toast while the platform is empty. */
+  togglePhoto: () => void
+  closePhoto: () => void
   /** A finished pit-stop challenge: keeps the best time and hands out the badge. */
   recordPitStop: (ms: number, mistakes: number) => void
   /** A finished quiz round: keeps the best score and hands out the badge for a perfect one. */
@@ -201,6 +206,7 @@ export const useWorkshop = create<WorkshopState>()(
       driving: false,
       trackScene: false,
       engineer: null,
+      photoMode: false,
 
       setReady: () => set({ ready: true }),
 
@@ -389,6 +395,7 @@ export const useWorkshop = create<WorkshopState>()(
           dragging: null,
           liveryOpen: false,
           engineer: null,
+          photoMode: false,
           toast: null,
         })
       },
@@ -399,6 +406,7 @@ export const useWorkshop = create<WorkshopState>()(
             ? {
                 driving: false,
                 engineer: null,
+                photoMode: false,
                 // The chase camera leaves the camera near the car; the rig flies it back to hero.
                 cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
               }
@@ -416,6 +424,7 @@ export const useWorkshop = create<WorkshopState>()(
         lastEngineerView = view
         set((state) => ({
           engineer: view,
+          photoMode: false,
           // The panel takes the middle of the screen, so the side cards close.
           ...(state.driving ? {} : { inspecting: null, hovered: null, liveryOpen: false }),
         }))
@@ -431,6 +440,32 @@ export const useWorkshop = create<WorkshopState>()(
         }
         state.openEngineer(lastEngineerView)
       },
+
+      togglePhoto: () => {
+        const state = get()
+        if (state.photoMode) {
+          set({ photoMode: false })
+          return
+        }
+        if (!state.driving && state.installed.length === 0) {
+          set({ toast: makeToast('Install a part first', 'denied') })
+          return
+        }
+        if (state.installing || state.assembling) {
+          set({ toast: makeToast('Wait for the assembly to finish', 'denied') })
+          return
+        }
+        set({
+          photoMode: true,
+          engineer: null,
+          inspecting: null,
+          hovered: null,
+          dragging: null,
+          liveryOpen: false,
+        })
+      },
+
+      closePhoto: () => set((state) => (state.photoMode ? { photoMode: false } : {})),
 
       recordPitStop: (ms, mistakes) => {
         const state = get()
@@ -467,6 +502,7 @@ export const useWorkshop = create<WorkshopState>()(
           liveryOpen: false,
           driving: false,
           engineer: null,
+          photoMode: false,
           cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
         }),
     }),
