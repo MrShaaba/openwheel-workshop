@@ -30,6 +30,9 @@ export function KeyLegend() {
         <kbd>P</kbd> photo
       </span>
       <span>
+        <kbd>N</kbd> tour
+      </span>
+      <span>
         <kbd>1-6</kbd> views
       </span>
       <span>

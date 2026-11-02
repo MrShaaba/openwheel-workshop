@@ -9,7 +9,8 @@ import {
   type BuildMode,
   type InstallCheck,
 } from '../parts/graph'
-import { PART_BY_ID, PART_COUNT } from '../parts/registry'
+import { PART_BY_ID, PART_COUNT, PARTS } from '../parts/registry'
+import { useTour } from '../tour/tourState'
 import type { PartId } from '../parts/types'
 import { DEFAULT_LIVERY, type Livery } from './livery'
 import { BADGES, type BadgeId } from './badges'
@@ -96,6 +97,8 @@ export interface WorkshopState extends PersistedState {
   photoMode: boolean
   /** Name of the connected gamepad, once the browser has reported one. */
   gamepad: string | null
+  /** The narrated build tour is running (its player holds the chapter). */
+  touring: boolean
 
   // Actions
   setReady: () => void
@@ -138,6 +141,14 @@ export interface WorkshopState extends PersistedState {
   /** `G`: opens the last tab, or closes the panel. */
   toggleEngineer: () => void
   setGamepad: (name: string | null) => void
+  /** Starts the guided tour in the workshop; refused with a toast while the car is assembling. */
+  startTour: () => void
+  stopTour: () => void
+  /**
+   * The tour reached a part: everything before it in build order is placed at once (no wipe) and the
+   * part itself flies in, so the car on screen always matches the chapter.
+   */
+  tourInstall: (part: PartId) => void
   /** Picks the circuit for the test drive; on the track the car goes back to the new grid. */
   setCircuit: (circuit: CircuitId) => void
   /** `P`: photo mode on or off; refused with a toast while the platform is empty. */
@@ -215,6 +226,7 @@ export const useWorkshop = create<WorkshopState>()(
       engineer: null,
       photoMode: false,
       gamepad: null,
+      touring: false,
 
       setReady: () => set({ ready: true }),
 
@@ -304,6 +316,7 @@ export const useWorkshop = create<WorkshopState>()(
           exploded: true,
           inspecting: null,
           hovered: null,
+          touring: false,
           cameraRequest: { kind: 'preset', preset: 'exploded', nonce: nextNonce() },
         })
       },
@@ -323,7 +336,7 @@ export const useWorkshop = create<WorkshopState>()(
           set({ toast: makeToast('Wait for the current part to lock in', 'denied') })
           return
         }
-        set({ assembling: true, inspecting: null, hovered: null })
+        set({ assembling: true, inspecting: null, hovered: null, touring: false })
       },
 
       stopAssembly: () => set((state) => (state.assembling ? { assembling: false } : {})),
@@ -404,6 +417,7 @@ export const useWorkshop = create<WorkshopState>()(
           liveryOpen: false,
           engineer: null,
           photoMode: false,
+          touring: false,
           toast: null,
         })
       },
@@ -433,6 +447,7 @@ export const useWorkshop = create<WorkshopState>()(
         set((state) => ({
           engineer: view,
           photoMode: false,
+          touring: false,
           // The panel takes the middle of the screen, so the side cards close.
           ...(state.driving ? {} : { inspecting: null, hovered: null, liveryOpen: false }),
         }))
@@ -464,6 +479,45 @@ export const useWorkshop = create<WorkshopState>()(
 
       setCircuit: (circuit) => set((state) => (state.circuit === circuit ? {} : { circuit })),
 
+      startTour: () => {
+        const state = get()
+        if (state.touring || state.driving) return
+        if (state.assembling) {
+          set({ toast: makeToast('Assembly in progress', 'denied') })
+          return
+        }
+        useTour.getState().setIndex(0)
+        useTour.getState().setPlaying(true)
+        set({
+          touring: true,
+          exploded: false,
+          inspecting: null,
+          hovered: null,
+          dragging: null,
+          liveryOpen: false,
+          engineer: null,
+          photoMode: false,
+        })
+      },
+
+      stopTour: () => set((state) => (state.touring ? { touring: false } : {})),
+
+      tourInstall: (part) => {
+        const state = get()
+        const order = PARTS.map((entry) => entry.id)
+        const before = order
+          .slice(0, order.indexOf(part))
+          .filter((id) => !state.installed.includes(id))
+        const installed = before.length ? [...state.installed, ...before] : state.installed
+        // A part still in flight that the chapter has overtaken lands at once.
+        const installing =
+          state.installing && before.includes(state.installing) ? null : state.installing
+        if (before.length || installing !== state.installing) set({ installed, installing })
+        if (installed.includes(part) || installing) return
+        const check = checkInstall(part, installed, 'free', null)
+        if (check.ok) set({ installing: part, inspecting: null, hovered: null })
+      },
+
       togglePhoto: () => {
         const state = get()
         if (state.photoMode) {
@@ -485,6 +539,7 @@ export const useWorkshop = create<WorkshopState>()(
           hovered: null,
           dragging: null,
           liveryOpen: false,
+          touring: false,
         })
       },
 
@@ -526,6 +581,7 @@ export const useWorkshop = create<WorkshopState>()(
           driving: false,
           engineer: null,
           photoMode: false,
+          touring: false,
           cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
         }),
     }),

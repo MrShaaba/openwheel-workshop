@@ -7,6 +7,7 @@ import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { PhotoToolbar } from '../photo/lazy'
 import { usePhoto } from '../photo/photoState'
 import { useWorkshop } from '../state/store'
+import { TourPlayer } from '../tour/lazy'
 import '../styles/hud.css'
 import { Brand } from './Brand'
 import { CameraPresets } from './CameraPresets'
@@ -26,6 +27,7 @@ export function HUD() {
   const trackScene = useWorkshop((state) => state.trackScene)
   const engineerOpen = useWorkshop((state) => state.engineer !== null)
   const photoMode = useWorkshop((state) => state.photoMode)
+  const touring = useWorkshop((state) => state.touring)
   const uiHidden = usePhoto((state) => state.hideUi) && photoMode
   // Once opened, the panel stays mounted so its exit animation can play.
   const [engineerSeen, setEngineerSeen] = useState(false)
@@ -87,7 +89,13 @@ export function HUD() {
 
           <footer className="hud-bottom" aria-label="Objective and camera">
             <KeyLegend />
-            <Objective />
+            {touring ? (
+              <Suspense fallback={<Objective />}>
+                <TourPlayer />
+              </Suspense>
+            ) : (
+              <Objective />
+            )}
             <CameraPresets />
           </footer>
         </motion.div>

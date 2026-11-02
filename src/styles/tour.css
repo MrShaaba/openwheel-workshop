@@ -1,0 +1,148 @@
+/* ---------- Guided tour (loaded with the tour chunk) ---------- */
+
+.tour-caption-slot {
+  position: absolute;
+  left: 50%;
+  bottom: 212px;
+  transform: translateX(-50%);
+  width: min(760px, calc(100vw - 48px));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.tour-caption {
+  width: 100%;
+  padding: 12px 18px 14px;
+  text-align: center;
+}
+
+.tour-caption p {
+  margin: 8px 0 0;
+  font: 17px/1.5 var(--sans);
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(56, 231, 255, 0.3);
+}
+
+.objective.tour {
+  min-width: 520px;
+}
+
+.tour-progress {
+  height: 3px;
+  margin: 8px 0 0;
+  background: rgba(56, 231, 255, 0.12);
+  overflow: hidden;
+}
+
+.tour-progress span {
+  display: block;
+  height: 100%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  transition: width 0.4s ease;
+}
+
+.tour-controls {
+  flex-wrap: wrap;
+}
+
+.tour-settings {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tour-select {
+  max-width: 220px;
+  padding: 5px 8px;
+  font: 11px var(--mono);
+  color: var(--text);
+  background: rgba(56, 231, 255, 0.05);
+  border: 1px solid rgba(56, 231, 255, 0.3);
+}
+
+.tour-chapters {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  text-align: left;
+  max-height: 34vh;
+  overflow: auto;
+}
+
+.tour-chapter-stage ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tour-chapter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 0;
+  font: 11px var(--mono);
+  text-align: left;
+  color: var(--text-dim);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tour-chapter:hover {
+  color: var(--cyan);
+}
+
+.tour-chapter .mark {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(56, 231, 255, 0.5);
+}
+
+.tour-chapter.done .mark {
+  background: var(--cyan);
+}
+
+.tour-chapter.now {
+  color: #ffffff;
+}
+
+.tour-chapter.now .mark {
+  border-color: #ffffff;
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+@media (max-width: 1100px) {
+  .objective.tour {
+    min-width: 0;
+  }
+  .tour-chapters {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .tour-caption-slot {
+    bottom: 262px;
+  }
+}
+
+@media (max-width: 900px) {
+  .tour-caption-slot {
+    bottom: 290px;
+    width: calc(100vw - 28px);
+  }
+  .tour-caption p {
+    font-size: 15px;
+  }
+  .tour-chapters {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { installableIds, nextGuidedPart } from '../parts/graph'
 import { usePhoto } from '../photo/photoState'
+import { useTour } from '../tour/tourState'
 import { markInteraction } from '../scene/interaction'
 import { CAMERA_PRESETS, useWorkshop } from '../state/store'
 
@@ -9,8 +10,9 @@ const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
 /**
  * Global shortcuts: Space installs next, E exploded view, L paint shop, D test drive, G race engineer,
- * B pit stop, Q quiz, P photo mode, R hero camera, 1 to 6 presets, M mute, Esc closes. On the track T
- * opens the setup tab. Photo mode keeps only Esc, H, Enter and M.
+ * B pit stop, Q quiz, P photo mode, N guided tour, R hero camera, 1 to 6 presets, M mute, Esc closes.
+ * On the track T opens the setup tab. Photo mode keeps only Esc, H, Enter and M; the tour takes Space,
+ * the arrows and Esc.
  */
 export function useKeyboard(): void {
   useEffect(() => {
@@ -37,6 +39,30 @@ export function useKeyboard(): void {
           usePhoto.getState().requestCapture()
         } else if (lower === 'm') state.toggleMute()
         else return
+        markInteraction()
+        return
+      }
+
+      if (state.touring) {
+        // The tour: Space plays or pauses, the arrows move between chapters, Esc ends it.
+        const tour = useTour.getState()
+        const lower = key.toLowerCase()
+        if (key === 'Escape') state.stopTour()
+        else if (key === ' ') {
+          if (event.target instanceof HTMLButtonElement) return
+          event.preventDefault()
+          tour.setPlaying(!tour.playing)
+        } else if (key === 'ArrowRight') {
+          tour.setIndex(tour.index + 1)
+          tour.setPlaying(true)
+        } else if (key === 'ArrowLeft') {
+          tour.setIndex(tour.index - 1)
+          tour.setPlaying(true)
+        } else if (lower === 'm') state.toggleMute()
+        else if (key >= '1' && key <= '6') {
+          const preset = CAMERA_PRESETS[Number(key) - 1]
+          if (preset) state.requestCamera(preset)
+        } else return
         markInteraction()
         return
       }
@@ -113,6 +139,9 @@ export function useKeyboard(): void {
           break
         case 'p':
           state.togglePhoto()
+          break
+        case 'n':
+          state.startTour()
           break
         case 'escape':
           if (state.engineer !== null) state.closeEngineer()

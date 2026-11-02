@@ -6,6 +6,7 @@ import { PART_BY_ID, PART_COUNT } from '../parts/registry'
 import { useInstallable, useNextGuided } from '../state/selectors'
 import { freshInstalls } from '../state/session'
 import { useWorkshop } from '../state/store'
+import { preloadTour } from '../tour/lazy'
 
 export function Objective() {
   const mode = useWorkshop((state) => state.mode)
@@ -21,6 +22,7 @@ export function Objective() {
   const liveryOpen = useWorkshop((state) => state.liveryOpen)
   const toggleLivery = useWorkshop((state) => state.toggleLivery)
   const startDrive = useWorkshop((state) => state.startDrive)
+  const startTour = useWorkshop((state) => state.startTour)
   const next = useNextGuided()
   const installable = useInstallable()
   const complete = installedCount === PART_COUNT
@@ -106,6 +108,17 @@ export function Objective() {
               <kbd aria-hidden="true">D</kbd>
             </button>
           )}
+          <button
+            type="button"
+            className="hud-btn"
+            onClick={startTour}
+            onPointerEnter={preloadTour}
+            onFocus={preloadTour}
+            aria-keyshortcuts="N"
+          >
+            Tour
+            <kbd aria-hidden="true">N</kbd>
+          </button>
         </div>
       )}
       {!complete && !inspecting && !exploded && (
@@ -144,6 +157,17 @@ export function Objective() {
                 onClick={startAssembly}
               >
                 Assemble all
+              </button>
+              <button
+                type="button"
+                className="hud-btn"
+                onClick={startTour}
+                onPointerEnter={preloadTour}
+                onFocus={preloadTour}
+                aria-keyshortcuts="N"
+              >
+                Tour
+                <kbd aria-hidden="true">N</kbd>
               </button>
             </>
           )}
