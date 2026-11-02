@@ -67,6 +67,12 @@
   border-radius: 2px;
 }
 
+.drive-flash.amber {
+  color: #ffe9b8;
+  border-color: #ffb020;
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.35);
+}
+
 .drive-flash.show,
 .drive-hint.show {
   opacity: 1;
@@ -201,6 +207,61 @@
 .rev-bar i.red.lit {
   background: var(--danger);
   box-shadow: 0 0 8px var(--danger);
+}
+
+/* Tyre compound and life, under the rev bar. */
+
+.tyre-strip {
+  --tyre: #ffd21f;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.tyre-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 3px solid var(--tyre);
+  background: #0e0f11;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--tyre) 55%, transparent);
+}
+
+.tyre-strip-bar {
+  display: block;
+  height: 4px;
+  background: rgba(56, 231, 255, 0.12);
+  border: 1px solid rgba(56, 231, 255, 0.18);
+  overflow: hidden;
+}
+
+.tyre-strip-bar i {
+  display: block;
+  height: 100%;
+  background: var(--tyre);
+  transition: width 0.3s linear;
+}
+
+.tyre-strip-pct {
+  font-variant-numeric: tabular-nums;
+  min-width: 4ch;
+  text-align: right;
+}
+
+.tyre-strip.gone .tyre-strip-bar i,
+.tyre-strip.gone .tyre-dot {
+  animation: tyre-gone 0.8s ease-in-out infinite;
+}
+
+@keyframes tyre-gone {
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .drive-laps {

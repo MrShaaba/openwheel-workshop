@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { preloadEngineer } from '../engineer/lazy'
 import { PART_COUNT } from '../parts/registry'
 import { useWorkshop } from '../state/store'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -12,6 +13,8 @@ export function ModeControls() {
   const toggleMute = useWorkshop((state) => state.toggleMute)
   const reset = useWorkshop((state) => state.reset)
   const notify = useWorkshop((state) => state.notify)
+  const engineerOpen = useWorkshop((state) => state.engineer !== null)
+  const toggleEngineer = useWorkshop((state) => state.toggleEngineer)
   const [confirming, setConfirming] = useState(false)
 
   const canReset = installedCount > 0 || assembling
@@ -37,6 +40,18 @@ export function ModeControls() {
         </button>
       </div>
       <div className="btn-group">
+        <button
+          type="button"
+          className={`hud-btn ${engineerOpen ? 'active' : ''}`}
+          onClick={toggleEngineer}
+          onPointerEnter={preloadEngineer}
+          onFocus={preloadEngineer}
+          aria-pressed={engineerOpen}
+          aria-keyshortcuts="G"
+        >
+          Race engineer
+          <kbd aria-hidden="true">G</kbd>
+        </button>
         <button
           type="button"
           className={`hud-btn ${muted ? 'active' : ''}`}

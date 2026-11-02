@@ -11,6 +11,7 @@ import {
 import { PART_BY_ID, PART_COUNT } from '../parts/registry'
 import type { PartId } from '../parts/types'
 import { DEFAULT_LIVERY, type Livery } from './livery'
+import { DEFAULT_SETUP, type CarSetup } from './setup'
 import {
   createSafeStorage,
   pickPersisted,
@@ -22,6 +23,10 @@ import {
 
 export type { BuildMode } from '../parts/graph'
 export { DEFAULT_LIVERY, type Livery, type LiveryPattern } from './livery'
+export type { CarSetup, TyreCompound } from './setup'
+
+/** The Race engineer panel's tabs. */
+export type EngineerView = 'setup' | 'pitstop' | 'quiz' | 'timetrial'
 
 /** Named camera poses. The first six sit on the HUD and keys 1 to 6; `exploded` backs Exploded View. */
 export type CameraPreset = 'front' | 'side' | 'top' | 'rear' | 'cockpit' | 'hero' | 'exploded'
@@ -82,6 +87,8 @@ export interface WorkshopState extends PersistedState {
    * covered the screen, so the scene swap and the camera jump are never visible.
    */
   trackScene: boolean
+  /** Which Race engineer tab is open, or null for none. Opening one pauses the car on the track. */
+  engineer: EngineerView | null
 
   // Actions
   setReady: () => void
@@ -116,11 +123,21 @@ export interface WorkshopState extends PersistedState {
   startDrive: () => void
   stopDrive: () => void
   setTrackScene: (mounted: boolean) => void
+  /** Car setup for the test drive. Changing the compound fits new tyres on the track. */
+  setSetup: (setup: Partial<CarSetup>) => void
+  resetSetup: () => void
+  openEngineer: (view: EngineerView) => void
+  closeEngineer: () => void
+  /** `G`: opens the last tab, or closes the panel. */
+  toggleEngineer: () => void
   reset: () => void
 }
 
 let nonce = 0
 const nextNonce = (): number => ++nonce
+
+/** The tab `G` reopens: the last one used this session. */
+let lastEngineerView: EngineerView = 'setup'
 
 /** State changes shared by every way of finishing the car. */
 const completion = () => ({
@@ -156,6 +173,7 @@ export const useWorkshop = create<WorkshopState>()(
       mode: 'guided',
       muted: false,
       livery: DEFAULT_LIVERY,
+      setup: DEFAULT_SETUP,
 
       ready: false,
       hydrated: false,
@@ -171,6 +189,7 @@ export const useWorkshop = create<WorkshopState>()(
       liveryOpen: false,
       driving: false,
       trackScene: false,
+      engineer: null,
 
       setReady: () => set({ ready: true }),
 
@@ -324,6 +343,7 @@ export const useWorkshop = create<WorkshopState>()(
           liveryOpen: true,
           inspecting: null,
           hovered: null,
+          engineer: null,
           // The hero angle shows the nose, a sidepod and the fin: every surface the livery paints.
           ...(state.exploded
             ? {}
@@ -357,6 +377,7 @@ export const useWorkshop = create<WorkshopState>()(
           hovered: null,
           dragging: null,
           liveryOpen: false,
+          engineer: null,
           toast: null,
         })
       },
@@ -366,6 +387,7 @@ export const useWorkshop = create<WorkshopState>()(
           state.driving
             ? {
                 driving: false,
+                engineer: null,
                 // The chase camera leaves the camera near the car; the rig flies it back to hero.
                 cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
               }
@@ -374,6 +396,30 @@ export const useWorkshop = create<WorkshopState>()(
 
       setTrackScene: (mounted) =>
         set((state) => (state.trackScene === mounted ? {} : { trackScene: mounted })),
+
+      setSetup: (setup) => set((state) => ({ setup: { ...state.setup, ...setup } })),
+
+      resetSetup: () => set({ setup: DEFAULT_SETUP }),
+
+      openEngineer: (view) => {
+        lastEngineerView = view
+        set((state) => ({
+          engineer: view,
+          // The panel takes the middle of the screen, so the side cards close.
+          ...(state.driving ? {} : { inspecting: null, hovered: null, liveryOpen: false }),
+        }))
+      },
+
+      closeEngineer: () => set((state) => (state.engineer === null ? {} : { engineer: null })),
+
+      toggleEngineer: () => {
+        const state = get()
+        if (state.engineer !== null) {
+          set({ engineer: null })
+          return
+        }
+        state.openEngineer(lastEngineerView)
+      },
 
       reset: () =>
         set({
@@ -387,6 +433,7 @@ export const useWorkshop = create<WorkshopState>()(
           celebration: null,
           liveryOpen: false,
           driving: false,
+          engineer: null,
           cameraRequest: { kind: 'preset', preset: 'hero', nonce: nextNonce() },
         }),
     }),

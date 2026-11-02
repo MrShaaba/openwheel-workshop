@@ -18,6 +18,9 @@ export function KeyLegend() {
         </span>
       )}
       <span>
+        <kbd>G</kbd> race engineer
+      </span>
+      <span>
         <kbd>1-6</kbd> views
       </span>
       <span>

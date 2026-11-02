@@ -9,15 +9,21 @@ import type { PartId } from '../parts/types'
 import { getLiveryUniforms } from '../scene/liveryTextures'
 import { createFinishMaterial, FINISHES } from '../scene/materials'
 import { applyMaterialize, createMaterializeUniforms } from '../shaders/materialize'
+import { useWorkshop, type CarSetup } from '../state/store'
 import { useDriveInput } from './input'
 import { MAX_SPEED, stepCar } from './physics'
-import { car, updateLaps } from './session'
+import { car, drivePaused, fitTyres, updateLaps } from './session'
 import { locateOnTrack, type TrackFix } from './track'
+import { tuningFor, type Tuning } from './tuning'
 
 /** Physics never integrates more than this per frame, so a paused tab does not launch the car. */
 const MAX_STEP = 1 / 30
 const RAIN_LIGHT_IDLE = FINISHES.emissive.emissiveIntensity ?? 3
 const RAIN_LIGHT_BRAKING = 9
+/** How far the body sits up at the highest ride height, in metres. */
+const RIDE_HEIGHT_LIFT = 0.05
+/** Shortest gap between two scrape sounds, in seconds. */
+const SCRAPE_INTERVAL = 0.22
 
 const WHEEL_IDS = ['wheel-fl', 'wheel-fr', 'wheel-rl', 'wheel-rr'] as const satisfies PartId[]
 const FRONT_WHEELS = new Set<PartId>(['wheel-fl', 'wheel-fr'])
@@ -74,7 +80,8 @@ function PartMeshes({ id, atOrigin = false, onMaterials }: PartMeshesProps) {
 /**
  * The finished car on the track: every part solid and painted, wheels that steer and spin, a body
  * that rolls and pitches with the forces on it, and a rain light that brightens under braking.
- * The car's own frame loop steps the physics and the lap timer into the shared session state.
+ * The car's own frame loop steps the physics and the lap timer into the shared session state,
+ * with the coefficients of whatever setup the Race engineer panel holds.
  */
 export function DriveCar() {
   const root = useRef<Group>(null)
@@ -83,6 +90,8 @@ export function DriveCar() {
   const spinGroups = useRef<(Group | null)[]>([])
   const rainLight = useRef<MeshStandardMaterial | null>(null)
   const fix = useRef<TrackFix>({ index: 0, progress: 0, lateral: 0 })
+  const tuning = useRef<{ setup: CarSetup; value: Tuning } | null>(null)
+  const lastScrape = useRef(0)
   const input = useDriveInput()
   const takeRainLight = useCallback((materials: MeshStandardMaterial[]) => {
     rainLight.current = materials.find((material) => material.emissive.getHex() !== 0) ?? null
@@ -91,20 +100,37 @@ export function DriveCar() {
   // The engine note lives as long as the car is on the track.
   useEffect(() => () => synth.engineStop(), [])
 
-  useFrame((_, dt) => {
-    const step = Math.min(dt, MAX_STEP)
-    locateOnTrack(car.x, car.z, fix.current)
-    stepCar(car, input.current, step, fix.current)
-    updateLaps(fix.current, performance.now())
+  useFrame(({ clock }, dt) => {
+    // The setup is read every frame but only turned into coefficients when it changes.
+    const setup = useWorkshop.getState().setup
+    if (tuning.current?.setup !== setup) {
+      if (tuning.current && tuning.current.setup.tyre !== setup.tyre) fitTyres()
+      tuning.current = { setup, value: tuningFor(setup) }
+    }
+    const paused = drivePaused()
+    if (!paused) {
+      const step = Math.min(dt, MAX_STEP)
+      locateOnTrack(car.x, car.z, fix.current)
+      stepCar(car, input.current, step, fix.current, tuning.current.value)
+      updateLaps(fix.current, performance.now())
+    }
     const speed01 = clamp01(Math.abs(car.speed) / MAX_SPEED)
     synth.engineUpdate({
-      revs: car.revs,
-      load: car.throttle,
-      speed: speed01,
-      slip: car.slip,
-      gravel: car.offTrack ? clamp01(Math.abs(car.speed) / 8) : 0,
+      revs: paused ? car.revs * 0.5 : car.revs,
+      load: paused ? 0 : car.throttle,
+      speed: paused ? 0 : speed01,
+      slip: paused ? 0 : car.slip,
+      gravel: !paused && car.offTrack ? clamp01(Math.abs(car.speed) / 8) : 0,
     })
     if (car.wallHit) synth.impact()
+    if (
+      !paused &&
+      car.bottoming > 0.35 &&
+      clock.elapsedTime - lastScrape.current > SCRAPE_INTERVAL
+    ) {
+      lastScrape.current = clock.elapsedTime
+      synth.scrape(car.bottoming)
+    }
 
     const node = root.current
     if (!node) return
@@ -118,7 +144,12 @@ export function DriveCar() {
     }
     node.position.set(car.x, 0, car.z)
     node.rotation.y = car.heading
-    if (chassis.current) chassis.current.rotation.set(car.pitch, 0, car.roll)
+    if (chassis.current) {
+      chassis.current.rotation.set(car.pitch, 0, car.roll)
+      // The body rides on its suspension: higher with the setting, lower as the floor bottoms out.
+      chassis.current.position.y =
+        RIDE_HEIGHT_LIFT * tuning.current.value.rideHeight - 0.03 * car.bottoming
+    }
     WHEEL_IDS.forEach((id, index) => {
       const steer = steerGroups.current[index]
       const spin = spinGroups.current[index]

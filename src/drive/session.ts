@@ -2,6 +2,7 @@
  * Session-only mutable state for the test drive, shared by the scene, the camera and the HUD without
  * React re-renders: one car, one lap record.
  */
+import { useWorkshop } from '../state/store'
 import { createCarState, placeCar, type CarPose } from './physics'
 import { gridPose, HALF_WIDTH, type TrackFix } from './track'
 
@@ -46,6 +47,17 @@ export function formatLap(ms: number | null): string {
   const seconds = Math.floor((total % 60000) / 1000)
   const millis = total % 1000
   return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`
+}
+
+/** The car stands still while a panel or photo mode has the screen. */
+export function drivePaused(): boolean {
+  const state = useWorkshop.getState()
+  return state.engineer !== null
+}
+
+/** A fresh set of the current compound. */
+export function fitTyres(): void {
+  car.tyreWear = 0
 }
 
 /** Back to the grid with the clock stopped; the best lap survives for the session. */

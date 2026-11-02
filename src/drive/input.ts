@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react'
-import { resetCar } from './session'
+import { drivePaused, resetCar } from './session'
 
 export interface DriveInput {
   /** 0 or 1. */
@@ -50,9 +50,18 @@ export function useDriveInput(): RefObject<DriveInput> {
       input.current.steer = (h.left ? 1 : 0) - (h.right ? 1 : 0)
       input.current.handbrake = h.handbrake
     }
+    const release = () => {
+      for (const key of Object.keys(held.current) as Held[]) held.current[key] = false
+      derive()
+    }
     const onKey = (event: KeyboardEvent, down: boolean) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (event.target instanceof HTMLElement && EDITABLE_TAGS.has(event.target.tagName)) return
+      // A panel over the track owns the keyboard; whatever was held is let go.
+      if (drivePaused()) {
+        release()
+        return
+      }
       const key = event.key.toLowerCase()
       // Space on a focused HUD button activates that button only.
       if (key === ' ' && event.target instanceof HTMLButtonElement) return
@@ -68,10 +77,6 @@ export function useDriveInput(): RefObject<DriveInput> {
     }
     const onDown = (event: KeyboardEvent) => onKey(event, true)
     const onUp = (event: KeyboardEvent) => onKey(event, false)
-    const release = () => {
-      for (const key of Object.keys(held.current) as Held[]) held.current[key] = false
-      derive()
-    }
     window.addEventListener('keydown', onDown)
     window.addEventListener('keyup', onUp)
     window.addEventListener('blur', release)

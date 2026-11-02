@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Suspense, useState } from 'react'
 import { DriveTransition } from '../drive/DriveTransition'
 import { DriveHUD } from '../drive/lazy'
+import { EngineerPanel } from '../engineer/lazy'
 import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { useWorkshop } from '../state/store'
 import '../styles/hud.css'
@@ -21,6 +22,10 @@ import { Toast } from './Toast'
 export function HUD() {
   const ready = useWorkshop((state) => state.ready)
   const trackScene = useWorkshop((state) => state.trackScene)
+  const engineerOpen = useWorkshop((state) => state.engineer !== null)
+  // Once opened, the panel stays mounted so its exit animation can play.
+  const [engineerSeen, setEngineerSeen] = useState(false)
+  if (engineerOpen && !engineerSeen) setEngineerSeen(true)
   // The long boot delay applies once; coming back from the track the HUD returns promptly.
   const [booted, setBooted] = useState(false)
 
@@ -74,6 +79,11 @@ export function HUD() {
       )}
 
       {trackScene ? null : <HoverLabel />}
+      {engineerSeen && (
+        <Suspense fallback={null}>
+          <EngineerPanel />
+        </Suspense>
+      )}
       <SystemsOnline />
       <Toast />
       {TEST_DRIVE_ENABLED ? <DriveTransition /> : null}

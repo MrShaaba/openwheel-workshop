@@ -324,6 +324,14 @@ class Synth {
     this.engine = null
   }
 
+  /** The floor scraping over a kerb: a short, bright grind. Call at most a few times a second. */
+  scrape(level = 1): void {
+    const r = this.ready()
+    if (!r) return
+    this.noiseBurst(r, 2400, 0.9, 0.16 * level, 0.14)
+    this.noiseBurst(r, 700, 1.5, 0.1 * level, 0.1)
+  }
+
   /** Dull thud for the arena wall. */
   impact(): void {
     const r = this.ready()

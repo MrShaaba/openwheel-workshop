@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { preloadEngineer } from '../engineer/lazy'
+import { TYRES } from '../state/setup'
 import { useWorkshop } from '../state/store'
 import '../styles/drive.css'
 import { Brand } from '../ui/Brand'
@@ -17,7 +19,11 @@ interface SlowTelemetry {
   bestMs: number | null
   moved: boolean
   offTrack: boolean
+  /** The floor is scraping over a kerb or the run-off. */
+  scraping: boolean
   timing: boolean
+  /** Tyre wear in whole percent, so the bar only re-renders when it moves. */
+  wear: number
 }
 
 const readSlow = (): SlowTelemetry => ({
@@ -26,7 +32,9 @@ const readSlow = (): SlowTelemetry => ({
   bestMs: laps.bestMs,
   moved: laps.moved,
   offTrack: car.offTrack,
+  scraping: car.bottoming > 0.35,
   timing: laps.startedAt !== null,
+  wear: Math.round(car.tyreWear * 100),
 })
 
 const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
@@ -35,7 +43,9 @@ const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
   a.bestMs === b.bestMs &&
   a.moved === b.moved &&
   a.offTrack === b.offTrack &&
-  a.timing === b.timing
+  a.scraping === b.scraping &&
+  a.timing === b.timing &&
+  a.wear === b.wear
 
 /** The circuit outline with the start line marked and a dot for the car. */
 function Minimap({ dot }: { dot: React.RefObject<SVGCircleElement | null> }) {
@@ -72,6 +82,9 @@ export default function DriveHUD() {
   const stopDrive = useWorkshop((state) => state.stopDrive)
   const muted = useWorkshop((state) => state.muted)
   const toggleMute = useWorkshop((state) => state.toggleMute)
+  const openEngineer = useWorkshop((state) => state.openEngineer)
+  const compound = useWorkshop((state) => state.setup.tyre)
+  const tyre = TYRES[compound]
   const speedRef = useRef<HTMLSpanElement>(null)
   const gearRef = useRef<HTMLSpanElement>(null)
   const revsRef = useRef<HTMLDivElement>(null)
@@ -134,6 +147,17 @@ export default function DriveHUD() {
         <div className="btn-group" id="drive-controls" tabIndex={-1}>
           <button
             type="button"
+            className="hud-btn"
+            onClick={() => openEngineer('setup')}
+            onPointerEnter={preloadEngineer}
+            onFocus={preloadEngineer}
+            aria-keyshortcuts="T"
+          >
+            Setup
+            <kbd aria-hidden="true">T</kbd>
+          </button>
+          <button
+            type="button"
             className={`hud-btn ${muted ? 'active' : ''}`}
             onClick={toggleMute}
             aria-pressed={muted}
@@ -154,8 +178,13 @@ export default function DriveHUD() {
       </header>
 
       <div className="drive-middle">
-        <div className={`drive-flash ${slow.offTrack ? 'show' : ''}`} role="status">
-          {slow.offTrack ? 'Track limits' : ''}
+        <div
+          className={`drive-flash ${slow.offTrack || slow.scraping ? 'show' : ''} ${
+            !slow.offTrack && slow.scraping ? 'amber' : ''
+          }`}
+          role="status"
+        >
+          {slow.offTrack ? 'Track limits' : slow.scraping ? 'Floor scraping' : ''}
         </div>
         <div className={`drive-hint ${slow.moved ? '' : 'show'}`} aria-hidden={slow.moved}>
           <kbd>W</kbd> or <kbd>↑</kbd> to drive · <kbd>A</kbd> <kbd>D</kbd> to steer
@@ -187,6 +216,18 @@ export default function DriveHUD() {
             {Array.from({ length: REV_SEGMENTS }, (_, index) => (
               <i key={index} className={index >= REDLINE_FROM ? 'red' : ''} />
             ))}
+          </div>
+          <div
+            className={`tyre-strip ${slow.wear >= 80 ? 'gone' : ''}`}
+            style={{ '--tyre': tyre.colour } as CSSProperties}
+            aria-label={`${tyre.name} tyres, ${slow.wear} percent worn`}
+          >
+            <span className="tyre-dot" aria-hidden="true" />
+            <span className="tyre-strip-name">{tyre.name}</span>
+            <span className="tyre-strip-bar" aria-hidden="true">
+              <i style={{ width: `${100 - slow.wear}%` }} />
+            </span>
+            <span className="tyre-strip-pct">{100 - slow.wear}%</span>
           </div>
         </div>
 
@@ -228,6 +269,12 @@ export default function DriveHUD() {
         </span>
         <span>
           <kbd>R</kbd> reset car
+        </span>
+        <span>
+          <kbd>T</kbd> setup
+        </span>
+        <span>
+          <kbd>G</kbd> engineer
         </span>
         <span>
           <kbd>ESC</kbd> workshop

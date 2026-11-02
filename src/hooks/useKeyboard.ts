@@ -6,7 +6,10 @@ import { CAMERA_PRESETS, useWorkshop } from '../state/store'
 
 const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
-/** Global shortcuts: Space installs next, E exploded view, L paint shop, D test drive, R hero camera, 1 to 6 presets, M mute, Esc closes. */
+/**
+ * Global shortcuts: Space installs next, E exploded view, L paint shop, D test drive, G race engineer,
+ * R hero camera, 1 to 6 presets, M mute, Esc closes. On the track T opens the setup tab.
+ */
 export function useKeyboard(): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -23,10 +26,17 @@ export function useKeyboard(): void {
       const key = event.key
 
       if (state.driving) {
-        // The track owns the keyboard (src/drive/input.ts); only leaving and mute stay global.
-        if (key === 'Escape') state.stopDrive()
-        else if (key.toLowerCase() === 'm') state.toggleMute()
-        else return
+        // The track owns the keyboard (src/drive/input.ts); only the panels, leaving and mute stay global.
+        const lower = key.toLowerCase()
+        if (key === 'Escape') {
+          if (state.engineer !== null) state.closeEngineer()
+          else state.stopDrive()
+        } else if (lower === 'm') state.toggleMute()
+        else if (lower === 'g') state.toggleEngineer()
+        else if (lower === 't') {
+          if (state.engineer === 'setup') state.closeEngineer()
+          else state.openEngineer('setup')
+        } else return
         markInteraction()
         return
       }
@@ -67,8 +77,12 @@ export function useKeyboard(): void {
         case 'm':
           state.toggleMute()
           break
+        case 'g':
+          state.toggleEngineer()
+          break
         case 'escape':
-          if (state.liveryOpen) state.closeLivery()
+          if (state.engineer !== null) state.closeEngineer()
+          else if (state.liveryOpen) state.closeLivery()
           else if (state.assembling) state.stopAssembly()
           else state.inspect(null)
           break

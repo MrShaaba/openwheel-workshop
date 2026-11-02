@@ -48,8 +48,8 @@ export function Objective() {
     hint = liveryOpen
       ? 'Pick a pattern, colours and a number. Changes are saved with the build.'
       : TEST_DRIVE_ENABLED
-        ? 'Paint it with L, take it out with D, inspect any part, press E for the exploded view, or Reset build.'
-        : 'Open the paint shop with L, inspect any part, press E for the exploded view, or Reset build.'
+        ? 'Paint it with L, set it up with G, take it out with D, or press E for the exploded view.'
+        : 'Open the paint shop with L, the race engineer with G, inspect any part, or press E for the exploded view.'
   } else if (assembling) {
     label = 'ASSEMBLING'
     title = installing ? PART_BY_ID[installing].name : 'Sequencing parts'
