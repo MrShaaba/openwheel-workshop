@@ -24,6 +24,9 @@ export function KeyLegend() {
         <kbd>B</kbd> pit stop
       </span>
       <span>
+        <kbd>Q</kbd> quiz
+      </span>
+      <span>
         <kbd>1-6</kbd> views
       </span>
       <span>

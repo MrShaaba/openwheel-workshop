@@ -5,6 +5,7 @@ import { useWorkshop, type EngineerView } from '../state/store'
 import { BADGES } from '../state/badges'
 import '../styles/engineer.css'
 import { PitStopGame } from './PitStopGame'
+import { QuizPanel } from './QuizPanel'
 import { SetupPanel } from './SetupPanel'
 
 interface Tab {
@@ -17,6 +18,7 @@ interface Tab {
 const TABS: readonly Tab[] = [
   { id: 'setup', label: 'Car setup', needsDrive: false },
   { id: 'pitstop', label: 'Pit stop', needsDrive: false },
+  { id: 'quiz', label: 'Quiz', needsDrive: false },
 ]
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [tabindex="0"]'
@@ -56,13 +58,16 @@ function EngineerDialog({ view }: { view: EngineerView }) {
   const root = useRef<HTMLDivElement>(null)
   const tabs = useRef<(HTMLButtonElement | null)[]>([])
 
-  // The active tab (or the first control) takes focus on open; the opener gets it back on close.
+  // The active tab (or the first control) takes focus on open, unless the tab's own content already
+  // placed it (a game focuses its start button); the opener gets focus back on close.
   useEffect(() => {
     const opener = document.activeElement
-    const index = TABS.findIndex((tab) => tab.id === view)
-    const tab = tabs.current[Math.max(0, index)]
-    if (tab) tab.focus()
-    else root.current?.querySelector<HTMLElement>(`.engineer-body ${FOCUSABLE}`)?.focus()
+    if (!root.current?.contains(opener)) {
+      const index = TABS.findIndex((tab) => tab.id === view)
+      const tab = tabs.current[Math.max(0, index)]
+      if (tab) tab.focus()
+      else root.current?.querySelector<HTMLElement>(`.engineer-body ${FOCUSABLE}`)?.focus()
+    }
     return () => {
       if (opener instanceof HTMLElement && document.contains(opener)) opener.focus()
     }
@@ -169,6 +174,7 @@ function EngineerDialog({ view }: { view: EngineerView }) {
       <div className="engineer-body" role={TABS.length > 1 ? 'tabpanel' : undefined}>
         {view === 'setup' && <SetupPanel />}
         {view === 'pitstop' && <PitStopGame />}
+        {view === 'quiz' && <QuizPanel />}
       </div>
     </motion.div>
   )

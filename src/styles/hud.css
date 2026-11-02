@@ -514,6 +514,8 @@
 
 .toast-slot {
   position: absolute;
+  /* Above the Race engineer backdrop, so a badge toast is readable over the panel. */
+  z-index: 35;
   left: 50%;
   bottom: 158px;
   transform: translateX(-50%);

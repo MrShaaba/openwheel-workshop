@@ -57,6 +57,12 @@ export function PitStopGame() {
   const clock = useRef<HTMLSpanElement>(null)
   const arrival = useRef<number | null>(null)
   const finished = useRef(false)
+  const cta = useRef<HTMLButtonElement>(null)
+
+  // Before and after a stop, the button Space should press is the focused one.
+  useEffect(() => {
+    if (phase === 'ready' || phase === 'done') cta.current?.focus()
+  }, [phase])
 
   const begin = useCallback(() => {
     setStop(createPitStop())
@@ -132,13 +138,16 @@ export function PitStopGame() {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return
       if (!KEYS.has(event.key)) return
+      // Outside a stop, Space on the focused button is that button's own click.
+      if (event.key === ' ' && event.target instanceof HTMLButtonElement && phase !== 'stopping')
+        return
       event.preventDefault()
       event.stopPropagation()
       feed(event.key)
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [feed])
+  }, [feed, phase])
 
   const step = phase === 'stopping' ? currentStep(stop) : null
   const prompt = step ? promptFor(step) : null
@@ -253,7 +262,7 @@ export function PitStopGame() {
                 Press the number on the wheel (or click it) and <kbd>SPACE</kbd> for the jacks and
                 the release. A wrong key costs half a second.
               </p>
-              <button type="button" className="hud-btn active pit-cta" onClick={begin}>
+              <button ref={cta} type="button" className="hud-btn active pit-cta" onClick={begin}>
                 Call the car in
                 <kbd aria-hidden="true">SPACE</kbd>
               </button>
@@ -323,7 +332,7 @@ export function PitStopGame() {
                   Under {formatStop(BADGE_MS)} s with no mistakes earns the Pit crew badge.
                 </p>
               )}
-              <button type="button" className="hud-btn active pit-cta" onClick={begin}>
+              <button ref={cta} type="button" className="hud-btn active pit-cta" onClick={begin}>
                 Again
                 <kbd aria-hidden="true">SPACE</kbd>
               </button>

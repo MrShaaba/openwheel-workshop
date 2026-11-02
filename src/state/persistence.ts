@@ -19,6 +19,8 @@ export interface PersistedState {
   setup: CarSetup
   /** Best pit-stop challenge time in milliseconds. */
   pitBestMs: number | null
+  /** Best quiz score out of a round. */
+  quizBest: number | null
   badges: BadgeId[]
 }
 
@@ -128,6 +130,10 @@ export function sanitizePersisted(value: unknown): PersistedState {
       typeof raw.pitBestMs === 'number' && Number.isFinite(raw.pitBestMs) && raw.pitBestMs > 0
         ? raw.pitBestMs
         : null,
+    quizBest:
+      typeof raw.quizBest === 'number' && Number.isInteger(raw.quizBest) && raw.quizBest >= 0
+        ? raw.quizBest
+        : null,
     badges: sanitizeBadges(raw.badges),
   }
 }
@@ -140,6 +146,7 @@ export function pickPersisted<T extends PersistedState>(state: T): PersistedStat
     livery: state.livery,
     setup: state.setup,
     pitBestMs: state.pitBestMs,
+    quizBest: state.quizBest,
     badges: state.badges,
   }
 }

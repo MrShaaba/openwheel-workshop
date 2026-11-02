@@ -134,6 +134,8 @@ export interface WorkshopState extends PersistedState {
   toggleEngineer: () => void
   /** A finished pit-stop challenge: keeps the best time and hands out the badge. */
   recordPitStop: (ms: number, mistakes: number) => void
+  /** A finished quiz round: keeps the best score and hands out the badge for a perfect one. */
+  recordQuiz: (score: number, total: number) => void
   /** Adds a badge once, with a toast. */
   awardBadge: (badge: BadgeId) => void
   reset: () => void
@@ -181,6 +183,7 @@ export const useWorkshop = create<WorkshopState>()(
       livery: DEFAULT_LIVERY,
       setup: DEFAULT_SETUP,
       pitBestMs: null,
+      quizBest: null,
       badges: [],
 
       ready: false,
@@ -434,6 +437,12 @@ export const useWorkshop = create<WorkshopState>()(
         const best = state.pitBestMs === null || ms < state.pitBestMs
         if (best) set({ pitBestMs: ms })
         if (ms <= 5000 && mistakes === 0) state.awardBadge('pit-crew')
+      },
+
+      recordQuiz: (score, total) => {
+        const state = get()
+        if (state.quizBest === null || score > state.quizBest) set({ quizBest: score })
+        if (score === total && total > 0) state.awardBadge('race-engineer')
       },
 
       awardBadge: (badge) => {
