@@ -170,6 +170,7 @@ function completeLap(now: number): void {
     split(2, ms, now)
     laps.bestMs = laps.bestMs === null ? ms : Math.min(laps.bestMs, ms)
     const { setup, circuit } = useWorkshop.getState()
+    useWorkshop.getState().recordSheetLap(circuit, setup, ms)
     submission = useRecords
       .getState()
       .submitLap(

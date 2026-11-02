@@ -12,6 +12,7 @@ import {
   type CarSetup,
 } from '../state/setup'
 import { useWorkshop } from '../state/store'
+import { SheetsSection } from './SheetsSection'
 
 type SliderKey = 'frontWing' | 'rearWing' | 'rideHeight' | 'brakeBias'
 
@@ -181,6 +182,8 @@ export function SetupPanel() {
           )}
         </div>
       </div>
+
+      <SheetsSection />
 
       <div className="setup-foot">
         <div className="btn-group" role="group" aria-label="Setup presets">

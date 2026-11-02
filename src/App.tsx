@@ -4,6 +4,7 @@ import { useAudio } from './audio/useAudio'
 import { useGamepadEvents } from './hooks/useGamepadEvents'
 import { useKeyboard } from './hooks/useKeyboard'
 import { useResumeNotice } from './hooks/useResumeNotice'
+import { useSetupLink } from './hooks/useSetupLink'
 import { markInteraction } from './scene/interaction'
 import { WorkshopCanvas } from './scene/WorkshopCanvas'
 import { HUD } from './ui/HUD'
@@ -14,6 +15,7 @@ export default function App() {
   useGamepadEvents()
   useAudio()
   useResumeNotice()
+  useSetupLink()
 
   useEffect(() => {
     const options: AddEventListenerOptions = { passive: true }

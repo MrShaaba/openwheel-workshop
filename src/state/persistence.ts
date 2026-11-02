@@ -5,6 +5,7 @@ import { DEFAULT_LIVERY, LIVERY_PATTERNS, type Livery, type LiveryPattern } from
 import { isCircuitId, type CircuitId } from './circuitId'
 import { sanitizeBadges, type BadgeId } from './badges'
 import { sanitizeSetup, type CarSetup } from './setup'
+import { sanitizeSheets, type SetupSheet } from './sheets'
 
 export const STORAGE_KEY = 'open-wheel-workshop:build'
 /** Bump when the persisted shape changes in a way `sanitizePersisted` cannot absorb. */
@@ -25,6 +26,8 @@ export interface PersistedState {
   badges: BadgeId[]
   /** The test-drive circuit last driven. */
   circuit: CircuitId
+  /** Named setups, per circuit. */
+  setupSheets: SetupSheet[]
 }
 
 /**
@@ -139,6 +142,7 @@ export function sanitizePersisted(value: unknown): PersistedState {
         : null,
     badges: sanitizeBadges(raw.badges),
     circuit: isCircuitId(raw.circuit) ? raw.circuit : 'flat',
+    setupSheets: sanitizeSheets(raw.setupSheets),
   }
 }
 
@@ -153,5 +157,6 @@ export function pickPersisted<T extends PersistedState>(state: T): PersistedStat
     quizBest: state.quizBest,
     badges: state.badges,
     circuit: state.circuit,
+    setupSheets: state.setupSheets,
   }
 }

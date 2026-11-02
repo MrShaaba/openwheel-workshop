@@ -15,6 +15,7 @@ import type { PartId } from '../parts/types'
 import { DEFAULT_LIVERY, type Livery } from './livery'
 import { BADGES, type BadgeId } from './badges'
 import { DEFAULT_SETUP, type CarSetup } from './setup'
+import { MAX_SHEETS, newSheetId, sameSetup, sanitizeSheetName, type SetupSheet } from './sheets'
 import {
   createSafeStorage,
   pickPersisted,
@@ -27,6 +28,7 @@ import {
 export type { BuildMode } from '../parts/graph'
 export { DEFAULT_LIVERY, type Livery, type LiveryPattern } from './livery'
 export type { CarSetup, TyreCompound } from './setup'
+export type { SetupSheet } from './sheets'
 export type { BadgeId } from './badges'
 
 /** The Race engineer panel's tabs. */
@@ -136,6 +138,15 @@ export interface WorkshopState extends PersistedState {
   /** Car setup for the test drive. Changing the compound fits new tyres on the track. */
   setSetup: (setup: Partial<CarSetup>) => void
   resetSetup: () => void
+  /** Saves the current setup under a name for the current circuit; a same-named sheet is replaced. */
+  saveSheet: (name: string) => SetupSheet | null
+  loadSheet: (id: string) => void
+  renameSheet: (id: string, name: string) => void
+  deleteSheet: (id: string) => void
+  /** Adds sheets from a file, skipping ones already present, up to the limit. Returns how many landed. */
+  importSheets: (sheets: SetupSheet[]) => number
+  /** A clean lap with the current setup: every sheet that matches it keeps its quickest time. */
+  recordSheetLap: (circuit: CircuitId, setup: CarSetup, ms: number) => void
   openEngineer: (view: EngineerView) => void
   closeEngineer: () => void
   /** `G`: opens the last tab, or closes the panel. */
@@ -208,6 +219,7 @@ export const useWorkshop = create<WorkshopState>()(
       quizBest: null,
       badges: [],
       circuit: 'flat',
+      setupSheets: [],
 
       ready: false,
       hydrated: false,
@@ -441,6 +453,86 @@ export const useWorkshop = create<WorkshopState>()(
       setSetup: (setup) => set((state) => ({ setup: { ...state.setup, ...setup } })),
 
       resetSetup: () => set({ setup: DEFAULT_SETUP }),
+
+      saveSheet: (rawName) => {
+        const state = get()
+        const name = sanitizeSheetName(rawName, `Setup ${state.setupSheets.length + 1}`)
+        const existing = state.setupSheets.find(
+          (sheet) => sheet.circuit === state.circuit && sheet.name === name,
+        )
+        const sheet: SetupSheet = {
+          id: existing?.id ?? newSheetId(),
+          name,
+          circuit: state.circuit,
+          setup: state.setup,
+          savedAt: Date.now(),
+          bestMs: existing && sameSetup(existing.setup, state.setup) ? existing.bestMs : null,
+        }
+        const others = state.setupSheets.filter((entry) => entry.id !== sheet.id)
+        if (!existing && others.length >= MAX_SHEETS) {
+          set({
+            toast: makeToast(`Only ${MAX_SHEETS} sheets can be kept. Delete one first.`, 'denied'),
+          })
+          return null
+        }
+        set({
+          setupSheets: [...others, sheet],
+          toast: makeToast(
+            existing ? `Sheet "${name}" updated` : `Sheet "${name}" saved`,
+            'success',
+          ),
+        })
+        return sheet
+      },
+
+      loadSheet: (id) => {
+        const sheet = get().setupSheets.find((entry) => entry.id === id)
+        if (!sheet) return
+        set({ setup: sheet.setup, toast: makeToast(`Setup "${sheet.name}" loaded`, 'info') })
+      },
+
+      renameSheet: (id, rawName) =>
+        set((state) => ({
+          setupSheets: state.setupSheets.map((sheet) =>
+            sheet.id === id ? { ...sheet, name: sanitizeSheetName(rawName, sheet.name) } : sheet,
+          ),
+        })),
+
+      deleteSheet: (id) =>
+        set((state) => ({ setupSheets: state.setupSheets.filter((sheet) => sheet.id !== id) })),
+
+      importSheets: (incoming) => {
+        const state = get()
+        const kept = [...state.setupSheets]
+        let added = 0
+        for (const sheet of incoming) {
+          if (kept.length >= MAX_SHEETS) break
+          const duplicate = kept.some(
+            (entry) =>
+              entry.id === sheet.id ||
+              (entry.circuit === sheet.circuit &&
+                entry.name === sheet.name &&
+                sameSetup(entry.setup, sheet.setup)),
+          )
+          if (duplicate) continue
+          kept.push(sheet)
+          added += 1
+        }
+        if (added > 0) set({ setupSheets: kept })
+        return added
+      },
+
+      recordSheetLap: (circuit, setup, ms) =>
+        set((state) => {
+          let changed = false
+          const setupSheets = state.setupSheets.map((sheet) => {
+            if (sheet.circuit !== circuit || !sameSetup(sheet.setup, setup)) return sheet
+            if (sheet.bestMs !== null && sheet.bestMs <= ms) return sheet
+            changed = true
+            return { ...sheet, bestMs: ms }
+          })
+          return changed ? { setupSheets } : {}
+        }),
 
       openEngineer: (view) => {
         lastEngineerView = view
