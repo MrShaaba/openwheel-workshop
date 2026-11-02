@@ -17,7 +17,15 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { HOLO_COLOR_SOFT, HOLO_HEX } from '../scene/constants'
-import { CIRCUIT, HALF_WIDTH, headingAt, KERB_RADIUS, TRACK_WIDTH } from './track'
+import {
+  HALF_WIDTH,
+  headingAt,
+  KERB_BAND,
+  KERB_RADIUS,
+  surfaceHeight,
+  TRACK_WIDTH,
+  type Circuit as CircuitData,
+} from './track'
 
 const EDGE_COLOR = new Color(HOLO_HEX).multiplyScalar(1.7)
 const KERB_RED = new Color('#ff3457')
@@ -25,6 +33,7 @@ const KERB_WHITE = new Color('#eef3f7')
 const GRID_CELL = new Color('#0a2a33')
 const GRID_SECTION = new Color(HOLO_HEX).multiplyScalar(0.75)
 const WALL_COLOR = new Color(HOLO_HEX)
+const CONTOUR_COLOR = new Color(HOLO_HEX).multiplyScalar(0.35)
 
 const ROAD_Y = 0
 const LINE_Y = 0.012
@@ -33,7 +42,7 @@ const KERB_Y = 0.008
 const LINE_INNER = HALF_WIDTH - 0.32
 const LINE_OUTER = HALF_WIDTH - 0.06
 const KERB_INNER = HALF_WIDTH + 0.04
-const KERB_OUTER = HALF_WIDTH + 1.3
+const KERB_OUTER = HALF_WIDTH + KERB_BAND
 /** Kerbs start a few metres before a corner and run a few metres past it. */
 const KERB_RUN_IN = 6
 /** Length of each red or white block along a kerb, in metres. */
@@ -41,54 +50,79 @@ const KERB_BLOCK = 2.6
 const POST_SPACING = 12
 const POST_OFFSET = HALF_WIDTH + 3.2
 const WALL_HEIGHT = 1.4
+/** Faint lines down the embankment at these distances beyond the kerb, so the hills read. */
+const CONTOUR_OFFSETS = [6, 14, 24]
 
 interface RibbonSpec {
   /** Signed lateral offsets, left positive. */
   inner: number
   outer: number
-  y: number
+  /** Height above the ground surface at (sample, offset). */
+  lift: number
   /** Which samples get a quad to the next sample (default all). */
   include?: (index: number) => boolean
   /** Per-quad colour, duplicated to its four vertices so blocks stay crisp. */
   color?: (index: number) => Color
 }
 
-/** Lateral position at a sample: centreline plus `offset` along the left normal. */
-function lateral(index: number, offset: number, out: [number, number]): [number, number] {
-  const { points, tangents } = CIRCUIT
+type Point = [number, number, number]
+
+/** Position at a sample and a lateral offset: centreline plus `offset` along the left normal, on the ground. */
+function lateral(circuit: CircuitData, index: number, offset: number, lift: number, out: Point) {
+  const { points, tangents } = circuit
   const tx = tangents[index * 2]
   const tz = tangents[index * 2 + 1]
   out[0] = points[index * 2] + tz * offset
-  out[1] = points[index * 2 + 1] - tx * offset
+  out[1] = surfaceHeight(circuit, index, offset) + lift
+  out[2] = points[index * 2 + 1] - tx * offset
   return out
 }
 
 /**
- * A strip following the centreline between two lateral offsets. Quads are emitted per sample pair
- * with their own vertices, so the strip can have gaps and hard colour changes.
+ * A strip following the centreline between two lateral offsets, draped over the ground. Quads are
+ * emitted per sample pair with their own vertices, so the strip can have gaps and hard colour changes.
  */
-function buildRibbon(spec: RibbonSpec): BufferGeometry {
-  const { count } = CIRCUIT
+function buildRibbon(circuit: CircuitData, spec: RibbonSpec): BufferGeometry {
+  const { count } = circuit
   const positions: number[] = []
   const normals: number[] = []
   const uvs: number[] = []
   const colors: number[] = []
   const indices: number[] = []
-  const a: [number, number] = [0, 0]
-  const b: [number, number] = [0, 0]
-  const c: [number, number] = [0, 0]
-  const d: [number, number] = [0, 0]
+  const a: Point = [0, 0, 0]
+  const b: Point = [0, 0, 0]
+  const c: Point = [0, 0, 0]
+  const d: Point = [0, 0, 0]
   for (let i = 0; i < count; i++) {
     if (spec.include && !spec.include(i)) continue
     const j = (i + 1) % count
-    lateral(i, spec.inner, a)
-    lateral(i, spec.outer, b)
-    lateral(j, spec.inner, c)
-    lateral(j, spec.outer, d)
+    lateral(circuit, i, spec.inner, spec.lift, a)
+    lateral(circuit, i, spec.outer, spec.lift, b)
+    lateral(circuit, j, spec.inner, spec.lift, c)
+    lateral(circuit, j, spec.outer, spec.lift, d)
     const base = positions.length / 3
-    for (const [x, z] of [a, b, c, d]) {
-      positions.push(x, spec.y, z)
-      normals.push(0, 1, 0)
+    // One normal per quad from its diagonal, good enough for a dark matte surface.
+    const ux = d[0] - a[0]
+    const uy = d[1] - a[1]
+    const uz = d[2] - a[2]
+    const vx = c[0] - b[0]
+    const vy = c[1] - b[1]
+    const vz = c[2] - b[2]
+    let nx = uy * vz - uz * vy
+    let ny = uz * vx - ux * vz
+    let nz = ux * vy - uy * vx
+    const length = Math.hypot(nx, ny, nz) || 1
+    nx /= length
+    ny /= length
+    nz /= length
+    if (ny < 0) {
+      nx = -nx
+      ny = -ny
+      nz = -nz
+    }
+    for (const [x, y, z] of [a, b, c, d]) {
+      positions.push(x, y, z)
+      normals.push(nx, ny, nz)
     }
     uvs.push(0, i, 1, i, 0, i + 1, 1, i + 1)
     if (spec.color) {
@@ -107,8 +141,8 @@ function buildRibbon(spec: RibbonSpec): BufferGeometry {
 }
 
 /** Samples inside a corner (or within the run-in either side of one) wear kerbs. */
-function kerbMask(): Uint8Array {
-  const { count, curvature, ds } = CIRCUIT
+function kerbMask(circuit: CircuitData): Uint8Array {
+  const { count, curvature, ds } = circuit
   const mask = new Uint8Array(count)
   const reach = Math.round(KERB_RUN_IN / ds)
   for (let i = 0; i < count; i++) {
@@ -118,54 +152,78 @@ function kerbMask(): Uint8Array {
   return mask
 }
 
-function buildKerbs(): BufferGeometry {
-  const mask = kerbMask()
-  const block = (index: number) => Math.floor((index * CIRCUIT.ds) / KERB_BLOCK) % 2 === 0
-  const left = buildRibbon({
-    inner: KERB_INNER,
-    outer: KERB_OUTER,
-    y: KERB_Y,
-    include: (i) => mask[i] === 1,
-    color: (i) => (block(i) ? KERB_RED : KERB_WHITE),
-  })
-  const right = buildRibbon({
-    inner: -KERB_OUTER,
-    outer: -KERB_INNER,
-    y: KERB_Y,
-    include: (i) => mask[i] === 1,
-    color: (i) => (block(i) ? KERB_WHITE : KERB_RED),
-  })
-  const merged = mergeGeometries([left, right])
-  left.dispose()
-  right.dispose()
+function mergeAndDispose(parts: BufferGeometry[]): BufferGeometry {
+  const merged = mergeGeometries(parts)
+  parts.forEach((part) => part.dispose())
   return merged
 }
 
-function buildEdgeLines(): BufferGeometry {
-  const left = buildRibbon({ inner: LINE_INNER, outer: LINE_OUTER, y: LINE_Y })
-  const right = buildRibbon({ inner: -LINE_OUTER, outer: -LINE_INNER, y: LINE_Y })
-  const merged = mergeGeometries([left, right])
-  left.dispose()
-  right.dispose()
-  return merged
+function buildKerbs(circuit: CircuitData): BufferGeometry {
+  const mask = kerbMask(circuit)
+  const block = (index: number) => Math.floor((index * circuit.ds) / KERB_BLOCK) % 2 === 0
+  return mergeAndDispose([
+    buildRibbon(circuit, {
+      inner: KERB_INNER,
+      outer: KERB_OUTER,
+      lift: KERB_Y,
+      include: (i) => mask[i] === 1,
+      color: (i) => (block(i) ? KERB_RED : KERB_WHITE),
+    }),
+    buildRibbon(circuit, {
+      inner: -KERB_OUTER,
+      outer: -KERB_INNER,
+      lift: KERB_Y,
+      include: (i) => mask[i] === 1,
+      color: (i) => (block(i) ? KERB_WHITE : KERB_RED),
+    }),
+  ])
+}
+
+function buildEdgeLines(circuit: CircuitData): BufferGeometry {
+  return mergeAndDispose([
+    buildRibbon(circuit, { inner: LINE_INNER, outer: LINE_OUTER, lift: LINE_Y }),
+    buildRibbon(circuit, { inner: -LINE_OUTER, outer: -LINE_INNER, lift: LINE_Y }),
+  ])
+}
+
+/** The ground beside a raised road, sloping back down to the plain. Only built where there are hills. */
+function buildEmbankment(circuit: CircuitData): BufferGeometry | null {
+  if (circuit.maxHeight === 0 && circuit.minHeight === 0) return null
+  const reach = HALF_WIDTH + KERB_BAND + circuit.embankment + 2
+  return mergeAndDispose([
+    buildRibbon(circuit, { inner: KERB_OUTER, outer: reach, lift: -0.004 }),
+    buildRibbon(circuit, { inner: -reach, outer: -KERB_OUTER, lift: -0.004 }),
+  ])
+}
+
+/** Thin lines down the embankment so the slopes show against the dark ground. */
+function buildContours(circuit: CircuitData): BufferGeometry | null {
+  if (circuit.maxHeight === 0 && circuit.minHeight === 0) return null
+  const parts: BufferGeometry[] = []
+  for (const offset of CONTOUR_OFFSETS) {
+    const at = HALF_WIDTH + KERB_BAND + offset
+    parts.push(buildRibbon(circuit, { inner: at, outer: at + 0.12, lift: 0.004 }))
+    parts.push(buildRibbon(circuit, { inner: -at - 0.12, outer: -at, lift: 0.004 }))
+  }
+  return mergeAndDispose(parts)
 }
 
 /** Glowing marker posts either side of the road, one instanced mesh. */
-function buildPosts(): InstancedMesh {
-  const { count, ds } = CIRCUIT
+function buildPosts(circuit: CircuitData): InstancedMesh {
+  const { count, ds } = circuit
   const step = Math.max(1, Math.round(POST_SPACING / ds))
   const total = Math.ceil(count / step) * 2
   const geometry = new BoxGeometry(0.1, 1.05, 0.1).translate(0, 0.525, 0)
   const material = new MeshBasicMaterial({ color: HOLO_COLOR_SOFT, toneMapped: false })
   const posts = new InstancedMesh(geometry, material, total)
   const matrix = new Matrix4()
-  const p: [number, number] = [0, 0]
+  const p: Point = [0, 0, 0]
   let n = 0
   for (let i = 0; i < count; i += step) {
-    const heading = headingAt(i)
+    const heading = headingAt(circuit, i)
     for (const side of [1, -1]) {
-      lateral(i, POST_OFFSET * side, p)
-      matrix.makeRotationY(heading).setPosition(p[0], 0, p[1])
+      lateral(circuit, i, POST_OFFSET * side, 0, p)
+      matrix.makeRotationY(heading).setPosition(p[0], p[1], p[2])
       posts.setMatrixAt(n++, matrix)
     }
   }
@@ -176,8 +234,8 @@ function buildPosts(): InstancedMesh {
 }
 
 /** A low translucent wall around the arena with a bright top edge: the soft boundary of the drive. */
-function buildWall(): { panels: BufferGeometry; edge: BufferGeometry } {
-  const { minX, maxX, minZ, maxZ } = CIRCUIT.arena
+function buildWall(circuit: CircuitData): { panels: BufferGeometry; edge: BufferGeometry } {
+  const { minX, maxX, minZ, maxZ } = circuit.arena
   const sides: [number, number, number, number][] = [
     [minX, minZ, maxX, minZ],
     [maxX, minZ, maxX, maxZ],
@@ -198,10 +256,7 @@ function buildWall(): { panels: BufferGeometry; edge: BufferGeometry } {
     edge.translate((x0 + x1) / 2, WALL_HEIGHT, (z0 + z1) / 2)
     edges.push(edge)
   }
-  const result = { panels: mergeGeometries(panels), edge: mergeGeometries(edges) }
-  panels.forEach((g) => g.dispose())
-  edges.forEach((g) => g.dispose())
-  return result
+  return { panels: mergeAndDispose(panels), edge: mergeAndDispose(edges) }
 }
 
 /** A two-row chequerboard for the start line, 8 squares across. */
@@ -229,15 +284,16 @@ function buildCheckerTexture(): DataTexture {
 }
 
 /** Pillars, beam and a light strip over the start line, in local coordinates (X across, Z along). */
-function StartGantry() {
-  const heading = headingAt(0)
-  const x = CIRCUIT.points[0]
-  const z = CIRCUIT.points[1]
+function StartGantry({ circuit }: { circuit: CircuitData }) {
+  const heading = headingAt(circuit, 0)
+  const x = circuit.points[0]
+  const y = circuit.heights[0]
+  const z = circuit.points[1]
   const span = TRACK_WIDTH + 3.6
   const checker = useMemo(() => buildCheckerTexture(), [])
   useEffect(() => () => checker.dispose(), [checker])
   return (
-    <group position={[x, 0, z]} rotation-y={heading}>
+    <group position={[x, y, z]} rotation-y={heading}>
       {[-1, 1].map((side) => (
         <mesh key={side} position={[(side * span) / 2, 3.4, 0]}>
           <boxGeometry args={[0.5, 6.8, 0.5]} />
@@ -261,28 +317,37 @@ function StartGantry() {
 }
 
 /**
- * The circuit as meshes: a dark road ribbon, glowing edge lines, red and white kerbs through the
- * corners, marker posts, the start gantry, the arena wall and a night ground with the workshop's
- * grid stretched to circuit scale.
+ * A circuit as meshes: a dark road ribbon draped over its height profile, glowing edge lines, red and
+ * white kerbs through the corners, an embankment with contour lines where the road is raised, marker
+ * posts, the start gantry, the arena wall and a night ground with the workshop's grid at circuit scale.
  */
-export function Circuit() {
-  const road = useMemo(() => buildRibbon({ inner: -HALF_WIDTH, outer: HALF_WIDTH, y: ROAD_Y }), [])
-  const lines = useMemo(() => buildEdgeLines(), [])
-  const kerbs = useMemo(() => buildKerbs(), [])
-  const posts = useMemo(() => buildPosts(), [])
-  const wall = useMemo(() => buildWall(), [])
+export function Circuit({ circuit }: { circuit: CircuitData }) {
+  const built = useMemo(
+    () => ({
+      road: buildRibbon(circuit, { inner: -HALF_WIDTH, outer: HALF_WIDTH, lift: ROAD_Y }),
+      lines: buildEdgeLines(circuit),
+      kerbs: buildKerbs(circuit),
+      embankment: buildEmbankment(circuit),
+      contours: buildContours(circuit),
+      posts: buildPosts(circuit),
+      wall: buildWall(circuit),
+    }),
+    [circuit],
+  )
 
   useEffect(
     () => () => {
-      road.dispose()
-      lines.dispose()
-      kerbs.dispose()
-      posts.geometry.dispose()
-      ;(posts.material as MeshBasicMaterial).dispose()
-      wall.panels.dispose()
-      wall.edge.dispose()
+      built.road.dispose()
+      built.lines.dispose()
+      built.kerbs.dispose()
+      built.embankment?.dispose()
+      built.contours?.dispose()
+      built.posts.geometry.dispose()
+      ;(built.posts.material as MeshBasicMaterial).dispose()
+      built.wall.panels.dispose()
+      built.wall.edge.dispose()
     },
-    [road, lines, kerbs, posts, wall],
+    [built],
   )
 
   return (
@@ -304,17 +369,27 @@ export function Circuit() {
         fadeStrength={3}
         infiniteGrid
       />
-      <mesh geometry={road}>
+      {built.embankment && (
+        <mesh geometry={built.embankment}>
+          <meshStandardMaterial color="#080d16" roughness={1} metalness={0} />
+        </mesh>
+      )}
+      {built.contours && (
+        <mesh geometry={built.contours}>
+          <meshBasicMaterial color={CONTOUR_COLOR} toneMapped={false} />
+        </mesh>
+      )}
+      <mesh geometry={built.road}>
         <meshStandardMaterial color="#141d28" roughness={0.9} metalness={0.2} />
       </mesh>
-      <mesh geometry={lines}>
+      <mesh geometry={built.lines}>
         <meshBasicMaterial color={EDGE_COLOR} toneMapped={false} />
       </mesh>
-      <mesh geometry={kerbs}>
+      <mesh geometry={built.kerbs}>
         <meshBasicMaterial vertexColors toneMapped={false} />
       </mesh>
-      <primitive object={posts} />
-      <mesh geometry={wall.panels}>
+      <primitive object={built.posts} />
+      <mesh geometry={built.wall.panels}>
         <meshBasicMaterial
           color={WALL_COLOR}
           transparent
@@ -324,10 +399,10 @@ export function Circuit() {
           toneMapped={false}
         />
       </mesh>
-      <mesh geometry={wall.edge}>
+      <mesh geometry={built.wall.edge}>
         <meshBasicMaterial color={HOLO_COLOR_SOFT} toneMapped={false} />
       </mesh>
-      <StartGantry />
+      <StartGantry circuit={circuit} />
     </group>
   )
 }

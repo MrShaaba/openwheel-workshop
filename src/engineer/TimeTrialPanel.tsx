@@ -4,21 +4,24 @@ import {
   HOT_LAP_MS,
   LEADERBOARD_SIZE,
   MAX_TAG_LENGTH,
+  useCircuitRecords,
   useRecords,
 } from '../drive/records'
 import { formatLap, formatSector } from '../drive/session'
+import { CIRCUIT_DEFINITIONS, CIRCUIT_IDS, getCircuit } from '../drive/track'
 import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import { TYRES } from '../state/setup'
 import { useWorkshop } from '../state/store'
 
 /**
- * Time trial: the local leaderboard of the ten quickest clean laps with their sectors and setup,
- * the best sector times, the driver tag that new laps are filed under, and a way to wipe it all.
+ * Time trial: the circuit switcher, then that circuit's local leaderboard of the ten quickest clean
+ * laps with their sectors and setup, its best sector times, the driver tag new laps are filed under,
+ * and a way to wipe the circuit's records.
  */
 export function TimeTrialPanel() {
-  const leaderboard = useRecords((state) => state.leaderboard)
-  const bestLap = useRecords((state) => state.bestLap)
-  const bestSectors = useRecords((state) => state.bestSectors)
+  const circuitId = useWorkshop((state) => state.circuit)
+  const setCircuit = useWorkshop((state) => state.setCircuit)
+  const { leaderboard, bestLap, bestSectors } = useCircuitRecords()
   const driverTag = useRecords((state) => state.driverTag)
   const setDriverTag = useRecords((state) => state.setDriverTag)
   const clear = useRecords((state) => state.clear)
@@ -39,6 +42,42 @@ export function TimeTrialPanel() {
 
   return (
     <div className="trial">
+      <div className="circuit-picker" role="group" aria-label="Circuit">
+        {CIRCUIT_IDS.map((id) => {
+          const definition = CIRCUIT_DEFINITIONS[id]
+          const built = getCircuit(id)
+          const active = id === circuitId
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`hud-btn circuit-btn ${active ? 'active' : ''}`}
+              aria-pressed={active}
+              onClick={() => {
+                if (active) return
+                setCircuit(id)
+                notify(
+                  trackScene
+                    ? `${definition.name}: back to the grid`
+                    : `${definition.name} selected for the next drive`,
+                )
+              }}
+            >
+              <svg
+                className="circuit-thumb"
+                viewBox="0 0 168 120"
+                aria-hidden="true"
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <path d={built.minimap.path} />
+              </svg>
+              <span className="circuit-name">{definition.name}</span>
+              <span className="circuit-blurb">{definition.blurb}</span>
+            </button>
+          )
+        })}
+      </div>
+
       <div className="trial-top">
         <div className="trial-stat">
           <span className="label">Best lap</span>
@@ -59,7 +98,8 @@ export function TimeTrialPanel() {
       <p className="trial-text">
         Clean laps only: a lap that leaves the track is timed but not recorded. Your best lap runs
         ahead of you on the circuit as a hologram ghost, sector splits show in the lap panel, and a
-        lap under {formatLap(HOT_LAP_MS).replace(/^0:/, '')} earns the Hot lap badge.
+        lap under {formatLap(HOT_LAP_MS[circuitId]).replace(/^0:/, '')} here earns the Hot lap
+        badge.
       </p>
 
       {leaderboard.length === 0 ? (
@@ -143,9 +183,9 @@ export function TimeTrialPanel() {
                 type="button"
                 className="hud-btn danger"
                 onClick={() => {
-                  clear()
+                  clear(circuitId)
                   setConfirmClear(false)
-                  notify('Lap records cleared')
+                  notify(`${CIRCUIT_DEFINITIONS[circuitId].name} records cleared`)
                 }}
               >
                 Yes, clear {leaderboard.length} lap{leaderboard.length === 1 ? '' : 's'}
@@ -166,7 +206,9 @@ export function TimeTrialPanel() {
           )}
         </div>
       </div>
-      <p className="trial-hint">Top {LEADERBOARD_SIZE} laps are kept in this browser only.</p>
+      <p className="trial-hint">
+        Top {LEADERBOARD_SIZE} laps per circuit are kept in this browser only.
+      </p>
     </div>
   )
 }

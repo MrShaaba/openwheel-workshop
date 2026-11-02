@@ -7,7 +7,7 @@
  */
 import { clamp, clamp01, damp, TAU } from '../lib/math'
 import type { DriveInput } from './input'
-import { CIRCUIT, HALF_WIDTH, RUNOFF_MARGIN, type TrackFix } from './track'
+import { HALF_WIDTH, RUNOFF_MARGIN, type Circuit, type TrackFix } from './track'
 import {
   BEST_BRAKE_FRONT,
   BRAKE_DECEL,
@@ -54,12 +54,22 @@ const SPIN_SLIDE = 0.5
 const MAX_SLIDE = 0.75
 /** The kerb starts this far inside the painted edge. */
 const KERB_INSET = 1.1
+const GRAVITY = 9.81
+/** How much grip the car loses when a crest takes all the weight off the tyres. */
+const CREST_GRIP_LOSS = 0.7
 
 export interface CarState {
   x: number
   z: number
+  /** Ground height under the car. */
+  y: number
   /** Yaw in radians. Forward is (sin heading, 0, cos heading): the nose points along +Z at zero. */
   heading: number
+  /** Tilt of the ground under the car along its length (nose up is negative) and across it. */
+  groundPitch: number
+  groundRoll: number
+  /** 0 to 1: how much a crest has lifted the weight off the tyres. */
+  light: number
   /** Signed speed in m/s along the direction of travel; negative while reversing. */
   speed: number
   /** Front wheel angle in radians, left positive. */
@@ -103,6 +113,10 @@ export interface CarPose {
 export function createCarState(pose: CarPose): CarState {
   return {
     ...pose,
+    y: 0,
+    groundPitch: 0,
+    groundRoll: 0,
+    light: 0,
     speed: 0,
     steer: 0,
     wheelSpin: 0,
@@ -150,8 +164,8 @@ function targetRevs(car: CarState, input: DriveInput): number {
 }
 
 /**
- * Advance the car by `dt` seconds. `fix` is where the car sat relative to the track last frame and
- * `tuning` is the current setup turned into coefficients.
+ * Advance the car by `dt` seconds. `fix` is where the car sat relative to the track last frame,
+ * `tuning` is the current setup turned into coefficients and `circuit` supplies the arena.
  */
 export function stepCar(
   car: CarState,
@@ -159,6 +173,7 @@ export function stepCar(
   dt: number,
   fix: TrackFix,
   tuning: Tuning,
+  circuit: Circuit,
 ) {
   const speed = car.speed
   const absSpeed = Math.abs(speed)
@@ -168,6 +183,21 @@ export function stepCar(
   car.onKerb = !car.offTrack && lateral > HALF_WIDTH - KERB_INSET
   car.throttle = input.throttle
   car.brake = Math.max(input.brake, input.handbrake ? 1 : 0)
+
+  // The ground under the car: its height, and its tilt along and across the car's own axes.
+  const trackHeading = Math.atan2(
+    circuit.tangents[fix.index * 2],
+    circuit.tangents[fix.index * 2 + 1],
+  )
+  const along = Math.cos(car.heading - trackHeading)
+  const across = Math.sin(car.heading - trackHeading)
+  const gradeForward = fix.grade * along + fix.slope * across
+  const gradeLeft = fix.grade * across * -1 + fix.slope * along
+  car.y = fix.height
+  car.groundPitch = -Math.atan(gradeForward)
+  car.groundRoll = Math.atan(gradeLeft)
+  // Over a crest the road falls away faster than gravity can follow at speed; the tyres go light.
+  car.light = clamp01((-fix.crest * speed * speed) / GRAVITY) * clamp01(Math.abs(along))
 
   // Ride height: a low floor scrapes on the kerbs and the run-off, which costs speed.
   const lowFloor = 1 - tuning.rideHeight
@@ -200,6 +230,8 @@ export function stepCar(
       (RUNOFF_DRAG * clamp01(absSpeed / RUNOFF_DRAG_FADE_SPEED) + RUNOFF_DRAG_PER_MS * absSpeed)
   }
   if (absSpeed > 0.05) accel -= direction * drag
+  // Gravity along the slope: a climb holds the car back, a descent pushes it on.
+  accel -= GRAVITY * gradeForward
   // A spinning car scrubs speed off fast.
   if (Math.abs(car.slide) > SPIN_SLIDE) accel -= direction * 8 * clamp01(absSpeed / 5)
 
@@ -215,11 +247,13 @@ export function stepCar(
   // Grip this frame: tyres (worn or not) plus the wings and floor, which only work at speed.
   const tyreGrip = tuning.mechanicalGrip * wearGrip(tuning, car.tyreWear)
   const aeroGrip = tuning.aeroGrip * car.speed * car.speed * (car.offTrack ? 0.5 : 1)
-  const grip = input.handbrake
-    ? HANDBRAKE_GRIP
-    : car.offTrack
-      ? Math.min(RUNOFF_GRIP, tyreGrip) + aeroGrip
-      : tyreGrip + aeroGrip
+  const grounded = 1 - CREST_GRIP_LOSS * car.light
+  const grip =
+    (input.handbrake
+      ? HANDBRAKE_GRIP
+      : car.offTrack
+        ? Math.min(RUNOFF_GRIP, tyreGrip) + aeroGrip
+        : tyreGrip + aeroGrip) * grounded
   car.grip = grip
 
   // Steering and yaw: bicycle model with a grip limit. Too much front brake makes the nose wash out.
@@ -268,7 +302,7 @@ export function stepCar(
   const travel = car.heading - car.slide
   car.x += Math.sin(travel) * car.speed * dt
   car.z += Math.cos(travel) * car.speed * dt
-  const { minX, maxX, minZ, maxZ } = CIRCUIT.arena
+  const { minX, maxX, minZ, maxZ } = circuit.arena
   car.wallHit = false
   if (car.x < minX || car.x > maxX || car.z < minZ || car.z > maxZ) {
     car.x = clamp(car.x, minX, maxX)

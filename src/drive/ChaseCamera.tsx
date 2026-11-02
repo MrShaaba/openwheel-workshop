@@ -5,6 +5,8 @@ import { clamp, clamp01, damp, dampAngle, lerp } from '../lib/math'
 import { useWorkshop } from '../state/store'
 import { MAX_SPEED } from './physics'
 import { car } from './session'
+import { createTrackFix, locateOnTrack } from './track'
+import { useCircuit } from './useCircuit'
 
 /** Camera distance behind the car and height above the road, at rest and at top speed. */
 const BACK = [6.6, 8.4] as const
@@ -16,6 +18,8 @@ const LOOK_HEIGHT = 0.6
 const TRACK_FAR = 900
 /** Vertical judder on the run-off, scaled by speed. */
 const RUNOFF_SHAKE = 0.06
+/** The camera never dips closer than this to the ground behind the car. */
+const GROUND_CLEARANCE = 0.6
 
 /** Portrait screens lose horizontal field of view, so the camera sits further back and higher. */
 function fitScale(aspect: number): number {
@@ -35,6 +39,8 @@ export function ChaseCamera() {
   const desired = useRef(new Vector3())
   const look = useRef(new Vector3())
   const snapped = useRef(false)
+  const circuit = useCircuit()
+  const groundFix = useRef(createTrackFix())
 
   useEffect(() => {
     if (!(camera instanceof PerspectiveCamera)) return
@@ -62,12 +68,15 @@ export function ChaseCamera() {
     const height = lerp(HEIGHT[0], HEIGHT[1], speed01) * (0.8 + 0.2 * fit)
     desired.current.set(
       car.x - Math.sin(heading.current) * back,
-      height,
+      car.y + height,
       car.z - Math.cos(heading.current) * back,
     )
+    // In a dip the ground behind the car is higher than the car: stay above it.
+    locateOnTrack(circuit, desired.current.x, desired.current.z, groundFix.current)
+    desired.current.y = Math.max(desired.current.y, groundFix.current.height + GROUND_CLEARANCE)
     look.current.set(
       car.x + Math.sin(car.heading) * LOOK_AHEAD,
-      LOOK_HEIGHT,
+      car.y + LOOK_HEIGHT,
       car.z + Math.cos(car.heading) * LOOK_AHEAD,
     )
 
@@ -77,7 +86,7 @@ export function ChaseCamera() {
     } else {
       const position = camera.position
       position.x = damp(position.x, desired.current.x, 7, dt)
-      position.y = damp(position.y, desired.current.y, 5, dt)
+      position.y = damp(position.y, desired.current.y, 6, dt)
       position.z = damp(position.z, desired.current.z, 7, dt)
       target.current.x = damp(target.current.x, look.current.x, 12, dt)
       target.current.y = damp(target.current.y, look.current.y, 12, dt)

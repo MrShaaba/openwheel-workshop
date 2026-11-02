@@ -14,8 +14,9 @@ import { useWorkshop, type CarSetup } from '../state/store'
 import { useDriveInput } from './input'
 import { MAX_SPEED, stepCar } from './physics'
 import { car, drivePaused, fitTyres, padUsed, updateLaps } from './session'
-import { locateOnTrack, type TrackFix } from './track'
+import { createTrackFix, locateOnTrack } from './track'
 import { tuningFor, type Tuning } from './tuning'
+import { useCircuit } from './useCircuit'
 
 /** Physics never integrates more than this per frame, so a paused tab does not launch the car. */
 const MAX_STEP = 1 / 30
@@ -90,7 +91,8 @@ export function DriveCar() {
   const steerGroups = useRef<(Group | null)[]>([])
   const spinGroups = useRef<(Group | null)[]>([])
   const rainLight = useRef<MeshStandardMaterial | null>(null)
-  const fix = useRef<TrackFix>({ index: 0, progress: 0, lateral: 0 })
+  const fix = useRef(createTrackFix())
+  const circuit = useCircuit()
   const tuning = useRef<{ setup: CarSetup; value: Tuning } | null>(null)
   const lastScrape = useRef(0)
   const controls = useDriveInput()
@@ -119,8 +121,8 @@ export function DriveCar() {
     if (controls.poll()) padUsed.value = true
     if (!paused) {
       const step = Math.min(dt, MAX_STEP)
-      locateOnTrack(car.x, car.z, fix.current)
-      stepCar(car, controls.input, step, fix.current, tuning.current.value)
+      locateOnTrack(circuit, car.x, car.z, fix.current)
+      stepCar(car, controls.input, step, fix.current, tuning.current.value, circuit)
       updateLaps(fix.current, performance.now())
     }
     const speed01 = clamp01(Math.abs(car.speed) / MAX_SPEED)
@@ -151,9 +153,10 @@ export function DriveCar() {
         dt,
       )
     }
-    node.position.set(car.x, 0, car.z)
-    node.rotation.y = car.heading
-    setCarFocus(car.x, 0.5, car.z)
+    // Yaw first, then the ground's tilt along and across the car (rotation order YXZ).
+    node.position.set(car.x, car.y, car.z)
+    node.rotation.set(car.groundPitch, car.heading, car.groundRoll)
+    setCarFocus(car.x, car.y + 0.5, car.z)
     if (chassis.current) {
       chassis.current.rotation.set(car.pitch, 0, car.roll)
       // The body rides on its suspension: higher with the setting, lower as the floor bottoms out.
@@ -169,7 +172,7 @@ export function DriveCar() {
   })
 
   return (
-    <group ref={root} name="drive-car">
+    <group ref={root} name="drive-car" rotation-order="YXZ">
       <group ref={chassis}>
         {BODY_PARTS.map((part) => (
           <PartMeshes

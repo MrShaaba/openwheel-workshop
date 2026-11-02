@@ -5,8 +5,10 @@ import { damp } from '../lib/math'
 import { getPartModel } from '../parts/model'
 import { PART_BY_ID, PARTS } from '../parts/registry'
 import { HologramMaterial } from '../shaders/hologram'
-import { traceAt, useRecords, type TracePose } from './records'
+import { traceAt, useCircuitRecords, type TracePose } from './records'
 import { laps } from './session'
+import { createTrackFix, locateOnTrack } from './track'
+import { useCircuit } from './useCircuit'
 
 const GHOST_COLOR = new Color('#38e7ff').multiplyScalar(1.6)
 const SHELL_OPACITY = 0.22
@@ -18,9 +20,11 @@ const WIRE_OPACITY = 0.3
  * begins and out again when the lap is over, and it never collides with anything.
  */
 export function GhostCar() {
-  const bestLap = useRecords((state) => state.bestLap)
+  const bestLap = useCircuitRecords().bestLap
+  const circuit = useCircuit()
   const root = useRef<Group>(null)
   const pose = useRef<TracePose>({ x: 0, z: 0, heading: 0, steer: 0 })
+  const fix = useRef(createTrackFix())
   const opacity = useRef(0)
   const materials = useMemo(
     () => ({
@@ -58,13 +62,15 @@ export function GhostCar() {
     materials.wire.time = clock.elapsedTime
     if (active && trace && laps.startedAt !== null) {
       traceAt(trace, performance.now() - laps.startedAt, pose.current)
-      node.position.set(pose.current.x, 0, pose.current.z)
-      node.rotation.y = pose.current.heading
+      // The ghost sits on the ground wherever the trace puts it, tilted with the slope.
+      locateOnTrack(circuit, pose.current.x, pose.current.z, fix.current)
+      node.position.set(pose.current.x, fix.current.height, pose.current.z)
+      node.rotation.set(-Math.atan(fix.current.grade), pose.current.heading, 0)
     }
   })
 
   return (
-    <group ref={root} name="ghost-car" visible={false}>
+    <group ref={root} name="ghost-car" visible={false} rotation-order="YXZ">
       {PARTS.map((part) => {
         const model = getPartModel(part.id)
         const { position, rotation = [0, 0, 0] } = PART_BY_ID[part.id].transform

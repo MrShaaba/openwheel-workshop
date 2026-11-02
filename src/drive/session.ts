@@ -3,12 +3,14 @@
  * React re-renders: one car, one lap record with sectors, and the trace of the lap in progress.
  */
 import { useWorkshop } from '../state/store'
-import { createCarState, placeCar, type CarPose } from './physics'
+import { createCarState, placeCar } from './physics'
 import { TRACE_STRIDE, useRecords, type SectorTimes } from './records'
-import { gridPose, HALF_WIDTH, type TrackFix } from './track'
+import { getCircuit, gridPose, HALF_WIDTH, type Circuit, type TrackFix } from './track'
 
-/** Where the car waits at the start: on the grid behind the line, pointing down the straight. */
-export const GRID_POSE: CarPose = gridPose()
+/** The circuit the store has selected, built on first use. */
+export function activeCircuit(): Circuit {
+  return getCircuit(useWorkshop.getState().circuit)
+}
 
 /** A crossing of the line only counts within this distance of the centreline. */
 const LINE_REACH = HALF_WIDTH + 6
@@ -67,7 +69,7 @@ export interface LapState {
   lastSampleAt: number
 }
 
-export const car = createCarState(GRID_POSE)
+export const car = createCarState(gridPose(activeCircuit()))
 
 /** Set once a gamepad has driven the car, so the HUD can switch its hints to the pad. */
 export const padUsed = { value: false }
@@ -138,7 +140,7 @@ function clearLap(): void {
 
 /** Back to the grid with the clock stopped; the best lap survives for the session. */
 export function resetCar(): void {
-  placeCar(car, GRID_POSE)
+  placeCar(car, gridPose(activeCircuit()))
   laps.lap = 0
   laps.lastMs = null
   laps.lastSectors = null
@@ -167,10 +169,11 @@ function completeLap(now: number): void {
     // The final split compares with the best lap as it stood before this one.
     split(2, ms, now)
     laps.bestMs = laps.bestMs === null ? ms : Math.min(laps.bestMs, ms)
-    const setup = useWorkshop.getState().setup
+    const { setup, circuit } = useWorkshop.getState()
     submission = useRecords
       .getState()
       .submitLap(
+        circuit,
         { ms, sectors, compound: setup.tyre, wings: [setup.frontWing, setup.rearWing] },
         quantise(laps.trace),
       )
@@ -196,7 +199,7 @@ function sampleTrace(now: number): void {
 
 /** Delta against the best lap at a sector boundary, if there is a best lap to compare with. */
 function split(sector: number, elapsed: number, now: number): void {
-  const best = useRecords.getState().bestLap
+  const best = useRecords.getState().circuits[useWorkshop.getState().circuit].bestLap
   if (!best) return
   let reference = 0
   for (let i = 0; i <= sector; i++) reference += best.sectors[i]

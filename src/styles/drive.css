@@ -179,6 +179,21 @@
   padding: 10px 12px 8px;
 }
 
+.minimap-title {
+  display: block;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  pointer-events: auto;
+}
+
+.minimap-title:hover .label {
+  color: var(--cyan);
+}
+
 .minimap {
   display: block;
 }

@@ -1,19 +1,21 @@
 /**
- * Time-trial records, saved in the browser under their own key: the best lap with its trace (for the
- * ghost), the best time through each sector, and a local leaderboard of the ten quickest laps.
+ * Time-trial records, saved in the browser under their own key and kept per circuit: the best lap
+ * with its trace (for the ghost), the best time through each sector, and a local leaderboard of
+ * the ten quickest laps.
  */
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { createSafeStorage } from '../state/persistence'
 import { TYRE_COMPOUNDS, type TyreCompound } from '../state/setup'
 import { useWorkshop } from '../state/store'
+import { CIRCUIT_IDS, isCircuitId, type CircuitId } from './track'
 
 export const RECORDS_KEY = 'open-wheel-workshop:timetrial'
 export const LEADERBOARD_SIZE = 10
 export const MAX_TAG_LENGTH = 12
 export const DEFAULT_TAG = 'YOU'
 /** A lap under this many milliseconds earns the Hot lap badge. */
-export const HOT_LAP_MS = 30000
+export const HOT_LAP_MS: Record<CircuitId, number> = { flat: 30000, ridge: 42000 }
 
 export type SectorTimes = [number, number, number]
 
@@ -33,6 +35,12 @@ export interface BestLap extends LapRecord {
   trace: number[]
 }
 
+export interface CircuitRecords {
+  bestLap: BestLap | null
+  bestSectors: [number | null, number | null, number | null]
+  leaderboard: LapRecord[]
+}
+
 export interface LapSubmission {
   /** 1-based leaderboard position, or null when it did not make the table. */
   position: number | null
@@ -42,21 +50,27 @@ export interface LapSubmission {
 }
 
 interface RecordsState {
-  bestLap: BestLap | null
-  bestSectors: [number | null, number | null, number | null]
-  leaderboard: LapRecord[]
+  circuits: Record<CircuitId, CircuitRecords>
   driverTag: string
-  submitLap: (lap: Omit<LapRecord, 'tag' | 'at'>, trace: number[]) => LapSubmission
+  submitLap: (
+    circuit: CircuitId,
+    lap: Omit<LapRecord, 'tag' | 'at'>,
+    trace: number[],
+  ) => LapSubmission
   setDriverTag: (tag: string) => void
-  clear: () => void
+  clear: (circuit: CircuitId) => void
 }
 
 interface PersistedRecords {
-  bestLap: BestLap | null
-  bestSectors: [number | null, number | null, number | null]
-  leaderboard: LapRecord[]
+  circuits: Record<CircuitId, CircuitRecords>
   driverTag: string
 }
+
+const emptyRecords = (): CircuitRecords => ({
+  bestLap: null,
+  bestSectors: [null, null, null],
+  leaderboard: [],
+})
 
 const isMs = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 && value < 36e5
@@ -92,7 +106,7 @@ function sanitizeLap(value: unknown): LapRecord | null {
   }
 }
 
-function sanitizeRecords(value: unknown): PersistedRecords {
+function sanitizeCircuitRecords(value: unknown): CircuitRecords {
   const raw = asRecord(value)
   const bestRaw = asRecord(raw.bestLap)
   const bestLap = sanitizeLap(raw.bestLap)
@@ -114,60 +128,83 @@ function sanitizeRecords(value: unknown): PersistedRecords {
       number | null,
       number | null,
     ],
-    driverTag: sanitizeTag(raw.driverTag),
     leaderboard,
   }
+}
+
+/** Reads either shape: version 2 keyed by circuit, or version 1 which only knew the flat circuit. */
+function sanitizeRecords(value: unknown): PersistedRecords {
+  const raw = asRecord(value)
+  const circuits = {} as Record<CircuitId, CircuitRecords>
+  const byCircuit = asRecord(raw.circuits)
+  for (const id of CIRCUIT_IDS) {
+    circuits[id] =
+      id in byCircuit
+        ? sanitizeCircuitRecords(byCircuit[id])
+        : id === 'flat' && 'leaderboard' in raw
+          ? sanitizeCircuitRecords(raw)
+          : emptyRecords()
+  }
+  return { circuits, driverTag: sanitizeTag(raw.driverTag) }
 }
 
 export const useRecords = create<RecordsState>()(
   persist(
     (set, get) => ({
-      bestLap: null,
-      bestSectors: [null, null, null],
-      leaderboard: [],
+      circuits: { flat: emptyRecords(), ridge: emptyRecords() },
       driverTag: DEFAULT_TAG,
 
-      submitLap: (lap, trace) => {
+      submitLap: (circuit, lap, trace) => {
         const state = get()
+        const records = state.circuits[circuit]
         const record: LapRecord = { ...lap, tag: state.driverTag, at: Date.now() }
-        const newBest = state.bestLap === null || lap.ms < state.bestLap.ms
+        const newBest = records.bestLap === null || lap.ms < records.bestLap.ms
         const purple = lap.sectors.map(
-          (ms, i) => state.bestSectors[i] === null || ms < (state.bestSectors[i] as number),
+          (ms, i) => records.bestSectors[i] === null || ms < (records.bestSectors[i] as number),
         ) as [boolean, boolean, boolean]
-        const leaderboard = [...state.leaderboard, record]
+        const leaderboard = [...records.leaderboard, record]
           .sort((a, b) => a.ms - b.ms)
           .slice(0, LEADERBOARD_SIZE)
         const index = leaderboard.indexOf(record)
         set({
-          leaderboard,
-          bestLap: newBest ? { ...record, trace } : state.bestLap,
-          bestSectors: lap.sectors.map((ms, i) =>
-            purple[i] ? ms : state.bestSectors[i],
-          ) as RecordsState['bestSectors'],
+          circuits: {
+            ...state.circuits,
+            [circuit]: {
+              leaderboard,
+              bestLap: newBest ? { ...record, trace } : records.bestLap,
+              bestSectors: lap.sectors.map((ms, i) =>
+                purple[i] ? ms : records.bestSectors[i],
+              ) as CircuitRecords['bestSectors'],
+            },
+          },
         })
-        if (lap.ms < HOT_LAP_MS) useWorkshop.getState().awardBadge('hot-lap')
+        if (lap.ms < HOT_LAP_MS[circuit]) useWorkshop.getState().awardBadge('hot-lap')
         return { position: index >= 0 ? index + 1 : null, newBest, purple }
       },
 
       setDriverTag: (tag) => set({ driverTag: sanitizeTag(tag) }),
 
-      clear: () => set({ bestLap: null, bestSectors: [null, null, null], leaderboard: [] }),
+      clear: (circuit) =>
+        set((state) => ({ circuits: { ...state.circuits, [circuit]: emptyRecords() } })),
     }),
     {
       name: RECORDS_KEY,
-      version: 1,
+      version: 2,
       storage: createJSONStorage<PersistedRecords>(() => createSafeStorage()),
-      partialize: (state) => ({
-        bestLap: state.bestLap,
-        bestSectors: state.bestSectors,
-        leaderboard: state.leaderboard,
-        driverTag: state.driverTag,
-      }),
+      partialize: (state) => ({ circuits: state.circuits, driverTag: state.driverTag }),
       migrate: (persisted) => sanitizeRecords(persisted),
       merge: (persisted, current) => ({ ...current, ...sanitizeRecords(persisted) }),
     },
   ),
 )
+
+/** Records of the circuit the store has selected. */
+export function useCircuitRecords(): CircuitRecords {
+  const circuit = useWorkshop((state) => state.circuit)
+  return useRecords((state) => state.circuits[circuit])
+}
+
+export { isCircuitId }
 
 /** Values per trace sample: ms, x, z, heading, steer. */
 export const TRACE_STRIDE = 5

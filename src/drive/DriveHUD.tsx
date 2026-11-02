@@ -6,7 +6,7 @@ import { TYRES } from '../state/setup'
 import { useWorkshop } from '../state/store'
 import '../styles/drive.css'
 import { Brand } from '../ui/Brand'
-import { useRecords } from './records'
+import { useCircuitRecords } from './records'
 import {
   car,
   formatDelta,
@@ -19,7 +19,8 @@ import {
   type LapResult,
   type Split,
 } from './session'
-import { CIRCUIT, MINIMAP_HEIGHT, MINIMAP_PATH, MINIMAP_WIDTH, toMinimap } from './track'
+import { MINIMAP_HEIGHT, MINIMAP_WIDTH, toMinimap, type Circuit } from './track'
+import { useCircuit } from './useCircuit'
 
 const REV_SEGMENTS = 20
 /** Segments from this one up are the red line. */
@@ -34,6 +35,8 @@ interface SlowTelemetry {
   offTrack: boolean
   /** The floor is scraping over a kerb or the run-off. */
   scraping: boolean
+  /** A crest has taken the weight off the tyres. */
+  light: boolean
   timing: boolean
   /** Tyre wear in whole percent, so the bar only re-renders when it moves. */
   wear: number
@@ -60,6 +63,7 @@ const readSlow = (now: number): SlowTelemetry => ({
   moved: laps.moved,
   offTrack: car.offTrack,
   scraping: car.bottoming > 0.35,
+  light: car.light > 0.3,
   timing: laps.startedAt !== null,
   wear: Math.round(car.tyreWear * 100),
   sector: laps.sector,
@@ -78,6 +82,7 @@ const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
   a.moved === b.moved &&
   a.offTrack === b.offTrack &&
   a.scraping === b.scraping &&
+  a.light === b.light &&
   a.timing === b.timing &&
   a.wear === b.wear &&
   a.sector === b.sector &&
@@ -90,10 +95,16 @@ const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
   a.pad === b.pad
 
 /** The circuit outline with the start line marked and a dot for the car. */
-function Minimap({ dot }: { dot: React.RefObject<SVGCircleElement | null> }) {
-  const [sx, sz] = toMinimap(CIRCUIT.points[0], CIRCUIT.points[1])
-  const tx = CIRCUIT.tangents[0]
-  const tz = CIRCUIT.tangents[1]
+function Minimap({
+  circuit,
+  dot,
+}: {
+  circuit: Circuit
+  dot: React.RefObject<SVGCircleElement | null>
+}) {
+  const [sx, sz] = toMinimap(circuit, circuit.points[0], circuit.points[1])
+  const tx = circuit.tangents[0]
+  const tz = circuit.tangents[1]
   // The start line runs across the track: along the left normal (tz, -tx), which maps to (tz, tx) on
   // the minimap because the map's vertical axis is flipped.
   const half = 5
@@ -105,8 +116,8 @@ function Minimap({ dot }: { dot: React.RefObject<SVGCircleElement | null> }) {
       height={MINIMAP_HEIGHT}
       aria-hidden="true"
     >
-      <path d={MINIMAP_PATH} className="minimap-road" />
-      <path d={MINIMAP_PATH} className="minimap-line" />
+      <path d={circuit.minimap.path} className="minimap-road" />
+      <path d={circuit.minimap.path} className="minimap-line" />
       <line
         className="minimap-start"
         x1={sx - tz * half}
@@ -128,8 +139,8 @@ export default function DriveHUD() {
   const togglePhoto = useWorkshop((state) => state.togglePhoto)
   const compound = useWorkshop((state) => state.setup.tyre)
   const tyre = TYRES[compound]
-  const bestSectors = useRecords((state) => state.bestSectors)
-  const bestLap = useRecords((state) => state.bestLap)
+  const { bestSectors, bestLap } = useCircuitRecords()
+  const circuit = useCircuit()
   const gamepad = useWorkshop((state) => state.gamepad)
   const speedRef = useRef<HTMLSpanElement>(null)
   const gearRef = useRef<HTMLSpanElement>(null)
@@ -167,7 +178,7 @@ export default function DriveHUD() {
             : formatSector(now - (laps.sectorStartedAt ?? laps.startedAt))
       }
       if (dotRef.current) {
-        const [u, v] = toMinimap(car.x, car.z)
+        const [u, v] = toMinimap(circuit, car.x, car.z)
         dotRef.current.setAttribute('cx', u.toFixed(1))
         dotRef.current.setAttribute('cy', v.toFixed(1))
       }
@@ -179,7 +190,7 @@ export default function DriveHUD() {
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [])
+  }, [circuit])
 
   const lapLabel = slow.lap === 0 ? 'Out lap' : `Lap ${slow.lap}`
   const result = slow.result
@@ -205,7 +216,10 @@ export default function DriveHUD() {
         <div>
           <Brand />
           <div className="drive-mode label">
-            Test drive · flat circuit · {Math.round(CIRCUIT.length)} m
+            Test drive · {circuit.name.toLowerCase()} · {Math.round(circuit.length)} m
+            {circuit.maxHeight > 0
+              ? ` · ${Math.round(circuit.maxHeight - circuit.minHeight)} m of climb`
+              : ''}
             {gamepad ? <span className="pad-chip">PAD · {gamepad}</span> : null}
           </div>
         </div>
@@ -266,12 +280,18 @@ export default function DriveHUD() {
 
       <div className="drive-middle">
         <div
-          className={`drive-flash ${slow.offTrack || slow.scraping ? 'show' : ''} ${
-            !slow.offTrack && slow.scraping ? 'amber' : ''
+          className={`drive-flash ${slow.offTrack || slow.scraping || slow.light ? 'show' : ''} ${
+            !slow.offTrack && (slow.scraping || slow.light) ? 'amber' : ''
           }`}
           role="status"
         >
-          {slow.offTrack ? 'Track limits' : slow.scraping ? 'Floor scraping' : ''}
+          {slow.offTrack
+            ? 'Track limits'
+            : slow.scraping
+              ? 'Floor scraping'
+              : slow.light
+                ? 'Light over the crest'
+                : ''}
         </div>
         <div className={`drive-hint ${slow.moved ? '' : 'show'}`} aria-hidden={slow.moved}>
           {gamepad ? (
@@ -318,8 +338,16 @@ export default function DriveHUD() {
 
       <footer className="drive-bottom">
         <div className="panel drive-minimap" aria-label="Circuit map">
-          <span className="label">Circuit</span>
-          <Minimap dot={dotRef} />
+          <button
+            type="button"
+            className="minimap-title"
+            onClick={() => openEngineer('timetrial')}
+            onPointerEnter={preloadEngineer}
+            title="Change circuit"
+          >
+            <span className="label">{circuit.name}</span>
+          </button>
+          <Minimap circuit={circuit} dot={dotRef} />
         </div>
 
         <div className="panel drive-dash" aria-label="Speed and gear">

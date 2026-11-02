@@ -2,6 +2,7 @@ import type { StateStorage } from 'zustand/middleware'
 import { dependenciesMet, type BuildMode } from '../parts/graph'
 import { PART_IDS, type PartId } from '../parts/types'
 import { DEFAULT_LIVERY, LIVERY_PATTERNS, type Livery, type LiveryPattern } from './livery'
+import { isCircuitId, type CircuitId } from './circuitId'
 import { sanitizeBadges, type BadgeId } from './badges'
 import { sanitizeSetup, type CarSetup } from './setup'
 
@@ -22,6 +23,8 @@ export interface PersistedState {
   /** Best quiz score out of a round. */
   quizBest: number | null
   badges: BadgeId[]
+  /** The test-drive circuit last driven. */
+  circuit: CircuitId
 }
 
 /**
@@ -135,6 +138,7 @@ export function sanitizePersisted(value: unknown): PersistedState {
         ? raw.quizBest
         : null,
     badges: sanitizeBadges(raw.badges),
+    circuit: isCircuitId(raw.circuit) ? raw.circuit : 'flat',
   }
 }
 
@@ -148,5 +152,6 @@ export function pickPersisted<T extends PersistedState>(state: T): PersistedStat
     pitBestMs: state.pitBestMs,
     quizBest: state.quizBest,
     badges: state.badges,
+    circuit: state.circuit,
   }
 }

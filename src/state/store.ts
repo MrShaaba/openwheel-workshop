@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import type { CircuitId } from './circuitId'
 import { TEST_DRIVE_ENABLED } from '../lib/flags'
 import {
   checkInstall,
@@ -137,6 +138,8 @@ export interface WorkshopState extends PersistedState {
   /** `G`: opens the last tab, or closes the panel. */
   toggleEngineer: () => void
   setGamepad: (name: string | null) => void
+  /** Picks the circuit for the test drive; on the track the car goes back to the new grid. */
+  setCircuit: (circuit: CircuitId) => void
   /** `P`: photo mode on or off; refused with a toast while the platform is empty. */
   togglePhoto: () => void
   closePhoto: () => void
@@ -193,6 +196,7 @@ export const useWorkshop = create<WorkshopState>()(
       pitBestMs: null,
       quizBest: null,
       badges: [],
+      circuit: 'flat',
 
       ready: false,
       hydrated: false,
@@ -457,6 +461,8 @@ export const useWorkshop = create<WorkshopState>()(
                 ),
               },
         ),
+
+      setCircuit: (circuit) => set((state) => (state.circuit === circuit ? {} : { circuit })),
 
       togglePhoto: () => {
         const state = get()
