@@ -93,6 +93,8 @@ export interface WorkshopState extends PersistedState {
   engineer: EngineerView | null
   /** Photo mode: free camera, depth of field, PNG download. Pauses the car on the track. */
   photoMode: boolean
+  /** Name of the connected gamepad, once the browser has reported one. */
+  gamepad: string | null
 
   // Actions
   setReady: () => void
@@ -134,6 +136,7 @@ export interface WorkshopState extends PersistedState {
   closeEngineer: () => void
   /** `G`: opens the last tab, or closes the panel. */
   toggleEngineer: () => void
+  setGamepad: (name: string | null) => void
   /** `P`: photo mode on or off; refused with a toast while the platform is empty. */
   togglePhoto: () => void
   closePhoto: () => void
@@ -207,6 +210,7 @@ export const useWorkshop = create<WorkshopState>()(
       trackScene: false,
       engineer: null,
       photoMode: false,
+      gamepad: null,
 
       setReady: () => set({ ready: true }),
 
@@ -440,6 +444,19 @@ export const useWorkshop = create<WorkshopState>()(
         }
         state.openEngineer(lastEngineerView)
       },
+
+      setGamepad: (name) =>
+        set((state) =>
+          state.gamepad === name
+            ? {}
+            : {
+                gamepad: name,
+                toast: makeToast(
+                  name ? `Gamepad connected: ${name}` : 'Gamepad disconnected',
+                  name ? 'success' : 'info',
+                ),
+              },
+        ),
 
       togglePhoto: () => {
         const state = get()

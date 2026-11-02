@@ -13,6 +13,7 @@ import {
   formatLap,
   formatSector,
   laps,
+  padUsed,
   resetCar,
   SPLIT_SHOW_MS,
   type LapResult,
@@ -45,6 +46,8 @@ interface SlowTelemetry {
   result: LapResult | null
   /** The latest split, while it is showing. */
   split: Split | null
+  /** A gamepad has driven the car this session. */
+  pad: boolean
 }
 
 /** How long the lap result stays up. */
@@ -65,6 +68,7 @@ const readSlow = (now: number): SlowTelemetry => ({
   dirty: laps.dirty,
   result: laps.result && now - laps.result.at < RESULT_SHOW_MS ? laps.result : null,
   split: laps.split && now - laps.split.at < SPLIT_SHOW_MS ? laps.split : null,
+  pad: padUsed.value,
 })
 
 const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
@@ -82,7 +86,8 @@ const sameSlow = (a: SlowTelemetry, b: SlowTelemetry) =>
   a.lastSectors === b.lastSectors &&
   a.dirty === b.dirty &&
   a.result === b.result &&
-  a.split === b.split
+  a.split === b.split &&
+  a.pad === b.pad
 
 /** The circuit outline with the start line marked and a dot for the car. */
 function Minimap({ dot }: { dot: React.RefObject<SVGCircleElement | null> }) {
@@ -125,6 +130,7 @@ export default function DriveHUD() {
   const tyre = TYRES[compound]
   const bestSectors = useRecords((state) => state.bestSectors)
   const bestLap = useRecords((state) => state.bestLap)
+  const gamepad = useWorkshop((state) => state.gamepad)
   const speedRef = useRef<HTMLSpanElement>(null)
   const gearRef = useRef<HTMLSpanElement>(null)
   const revsRef = useRef<HTMLDivElement>(null)
@@ -200,6 +206,7 @@ export default function DriveHUD() {
           <Brand />
           <div className="drive-mode label">
             Test drive · flat circuit · {Math.round(CIRCUIT.length)} m
+            {gamepad ? <span className="pad-chip">PAD · {gamepad}</span> : null}
           </div>
         </div>
         <div className="btn-group" id="drive-controls" tabIndex={-1}>
@@ -267,7 +274,15 @@ export default function DriveHUD() {
           {slow.offTrack ? 'Track limits' : slow.scraping ? 'Floor scraping' : ''}
         </div>
         <div className={`drive-hint ${slow.moved ? '' : 'show'}`} aria-hidden={slow.moved}>
-          <kbd>W</kbd> or <kbd>↑</kbd> to drive · <kbd>A</kbd> <kbd>D</kbd> to steer
+          {gamepad ? (
+            <>
+              <kbd>RT</kbd> to drive · left stick to steer
+            </>
+          ) : (
+            <>
+              <kbd>W</kbd> or <kbd>↑</kbd> to drive · <kbd>A</kbd> <kbd>D</kbd> to steer
+            </>
+          )}
         </div>
         <div
           className={`drive-split ${split && !result ? 'show' : ''} ${split && split.delta < 0 ? 'faster' : 'slower'}`}
@@ -387,43 +402,73 @@ export default function DriveHUD() {
         </div>
       </footer>
 
-      <div className="drive-legend" aria-label="Driving controls">
-        <span>
-          <kbd>W</kbd>
-          <kbd>↑</kbd> throttle
-        </span>
-        <span>
-          <kbd>S</kbd>
-          <kbd>↓</kbd> brake, reverse
-        </span>
-        <span>
-          <kbd>A</kbd>
-          <kbd>D</kbd>
-          <kbd>←</kbd>
-          <kbd>→</kbd> steer
-        </span>
-        <span>
-          <kbd>SPACE</kbd> handbrake
-        </span>
-        <span>
-          <kbd>R</kbd> reset car
-        </span>
-        <span>
-          <kbd>T</kbd> setup
-        </span>
-        <span>
-          <kbd>B</kbd> pit stop
-        </span>
-        <span>
-          <kbd>P</kbd> photo
-        </span>
-        <span>
-          <kbd>G</kbd> engineer
-        </span>
-        <span>
-          <kbd>ESC</kbd> workshop
-        </span>
-      </div>
+      {slow.pad || gamepad ? (
+        <div className="drive-legend" aria-label="Gamepad controls">
+          <span>
+            <kbd>RT</kbd> throttle
+          </span>
+          <span>
+            <kbd>LT</kbd> brake, reverse
+          </span>
+          <span>
+            <kbd>STICK</kbd>
+            <kbd>D-PAD</kbd> steer
+          </span>
+          <span>
+            <kbd>A</kbd> handbrake
+          </span>
+          <span>
+            <kbd>Y</kbd> reset car
+          </span>
+          <span>
+            <kbd>START</kbd> setup
+          </span>
+          <span>
+            <kbd>B</kbd> close panel
+          </span>
+          <span>
+            <kbd>ESC</kbd> workshop
+          </span>
+        </div>
+      ) : (
+        <div className="drive-legend" aria-label="Driving controls">
+          <span>
+            <kbd>W</kbd>
+            <kbd>↑</kbd> throttle
+          </span>
+          <span>
+            <kbd>S</kbd>
+            <kbd>↓</kbd> brake, reverse
+          </span>
+          <span>
+            <kbd>A</kbd>
+            <kbd>D</kbd>
+            <kbd>←</kbd>
+            <kbd>→</kbd> steer
+          </span>
+          <span>
+            <kbd>SPACE</kbd> handbrake
+          </span>
+          <span>
+            <kbd>R</kbd> reset car
+          </span>
+          <span>
+            <kbd>T</kbd> setup
+          </span>
+          <span>
+            <kbd>B</kbd> pit stop
+          </span>
+          <span>
+            <kbd>P</kbd> photo
+          </span>
+          <span>
+            <kbd>G</kbd> engineer
+          </span>
+          <span>
+            <kbd>ESC</kbd> workshop
+          </span>
+        </div>
+      )}
     </motion.div>
   )
 }

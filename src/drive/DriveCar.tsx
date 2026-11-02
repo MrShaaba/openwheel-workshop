@@ -13,7 +13,7 @@ import { applyMaterialize, createMaterializeUniforms } from '../shaders/material
 import { useWorkshop, type CarSetup } from '../state/store'
 import { useDriveInput } from './input'
 import { MAX_SPEED, stepCar } from './physics'
-import { car, drivePaused, fitTyres, updateLaps } from './session'
+import { car, drivePaused, fitTyres, padUsed, updateLaps } from './session'
 import { locateOnTrack, type TrackFix } from './track'
 import { tuningFor, type Tuning } from './tuning'
 
@@ -93,7 +93,7 @@ export function DriveCar() {
   const fix = useRef<TrackFix>({ index: 0, progress: 0, lateral: 0 })
   const tuning = useRef<{ setup: CarSetup; value: Tuning } | null>(null)
   const lastScrape = useRef(0)
-  const input = useDriveInput()
+  const controls = useDriveInput()
   const takeRainLight = useCallback((materials: MeshStandardMaterial[]) => {
     rainLight.current = materials.find((material) => material.emissive.getHex() !== 0) ?? null
   }, [])
@@ -115,10 +115,12 @@ export function DriveCar() {
       tuning.current = { setup, value: tuningFor(setup) }
     }
     const paused = drivePaused()
+    // The pad is polled even while paused, so Start and B work with a panel open.
+    if (controls.poll()) padUsed.value = true
     if (!paused) {
       const step = Math.min(dt, MAX_STEP)
       locateOnTrack(car.x, car.z, fix.current)
-      stepCar(car, input.current, step, fix.current, tuning.current.value)
+      stepCar(car, controls.input, step, fix.current, tuning.current.value)
       updateLaps(fix.current, performance.now())
     }
     const speed01 = clamp01(Math.abs(car.speed) / MAX_SPEED)

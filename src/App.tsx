@@ -1,6 +1,7 @@
 import { MotionConfig } from 'framer-motion'
 import { useEffect } from 'react'
 import { useAudio } from './audio/useAudio'
+import { useGamepadEvents } from './hooks/useGamepadEvents'
 import { useKeyboard } from './hooks/useKeyboard'
 import { useResumeNotice } from './hooks/useResumeNotice'
 import { markInteraction } from './scene/interaction'
@@ -10,6 +11,7 @@ import { LoadingScreen } from './ui/LoadingScreen'
 
 export default function App() {
   useKeyboard()
+  useGamepadEvents()
   useAudio()
   useResumeNotice()
 

@@ -25,6 +25,13 @@
   pointer-events: auto;
 }
 
+.pad-chip {
+  margin-left: 12px;
+  padding: 2px 6px;
+  color: var(--cyan);
+  border: 1px solid rgba(56, 231, 255, 0.35);
+}
+
 /* Centre band: track-limits warning and the first-drive hint. */
 
 .drive-middle {

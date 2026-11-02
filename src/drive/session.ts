@@ -69,6 +69,9 @@ export interface LapState {
 
 export const car = createCarState(GRID_POSE)
 
+/** Set once a gamepad has driven the car, so the HUD can switch its hints to the pad. */
+export const padUsed = { value: false }
+
 export const laps: LapState = {
   lap: 0,
   startedAt: null,
